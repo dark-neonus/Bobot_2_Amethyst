@@ -200,14 +200,14 @@
 	(footprint "SW_DPDT_XLX:SW_DPDT_XLX"
 		(layer "F.Cu")
 		(uuid "0270aefd-a124-4359-b07e-20e12c4dbe62")
-		(at 106 61.5 180)
+		(at 105.46 62 180)
 		(descr "DPDT Latching")
 		(tags "SW DPDT")
 		(property "Reference" "BtnBM1"
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "429155a5-c0b5-4da1-9358-cbd86c34c87d")
+			(uuid "71dd0a65-4672-4a16-8d0f-d1cecf77e3d1")
 			(effects
 				(font
 					(size 1 1)
@@ -218,7 +218,7 @@
 		(property "Value" "BM"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "52dc7d40-9e1d-491a-9896-385ff006de36")
+			(uuid "98af88b4-0843-4fbb-ba28-31619a7e6fb0")
 			(effects
 				(font
 					(size 1 1)
@@ -230,7 +230,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "831f9dad-1936-44e5-9133-b6e467179368")
+			(uuid "f365ad57-d793-423e-bc1e-7c9419d51250")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -242,7 +242,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "7c105ddc-dee4-4d7e-8bd7-80c0cb0e1b98")
+			(uuid "a857d6e1-53fc-423f-9d7a-717c02ccc644")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -380,7 +380,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 42 "unconnected-(BtnBM1-A-Pad1)")
 			(pinfunction "A")
@@ -391,7 +391,7 @@
 			(at 0 3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 63 "Net-(BtnBusOut1-BM)")
 			(pinfunction "B")
@@ -404,7 +404,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 25 "GND1")
 			(pinfunction "C")
@@ -417,7 +417,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 45 "unconnected-(BtnBM1-A-Pad4)")
 			(pinfunction "A")
@@ -428,7 +428,7 @@
 			(at 0 -3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 43 "unconnected-(BtnBM1-B-Pad5)")
 			(pinfunction "B")
@@ -441,7 +441,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 44 "unconnected-(BtnBM1-C-Pad6)")
 			(pinfunction "C")
@@ -464,14 +464,14 @@
 	(footprint "SW_DPDT_XLX:SW_DPDT_XLX"
 		(layer "F.Cu")
 		(uuid "0ecb4a6a-b8be-4a89-94ad-f14973bd851d")
-		(at 86.92 45.5 180)
+		(at 86 45 180)
 		(descr "DPDT Latching")
 		(tags "SW DPDT")
 		(property "Reference" "BtnML1"
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "f123107e-ad33-46c4-9da0-d50ffb2e90fa")
+			(uuid "c896d8a7-fde2-4329-af4a-0f76cd03b4ea")
 			(effects
 				(font
 					(size 1 1)
@@ -482,7 +482,7 @@
 		(property "Value" "ML"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "4a64be71-655a-498b-9fc5-f3146577e6a6")
+			(uuid "40996214-6de7-49ad-b693-2e59dde4fe8e")
 			(effects
 				(font
 					(size 1 1)
@@ -494,7 +494,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "4d8c2186-e05a-4928-b95f-0a3ff8cae287")
+			(uuid "a3eb36a6-027f-43d8-bcb6-7965c453b0d4")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -506,7 +506,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "d400c151-742f-46d0-83ec-ee5f16b780b9")
+			(uuid "160c11bd-3406-4a75-8869-219a190b5b8b")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -644,7 +644,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 50 "unconnected-(BtnML1-A-Pad1)")
 			(pinfunction "A")
@@ -655,7 +655,7 @@
 			(at 0 3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 75 "Net-(BtnBusOut1-ML)")
 			(pinfunction "B")
@@ -668,7 +668,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 25 "GND1")
 			(pinfunction "C")
@@ -681,7 +681,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 53 "unconnected-(BtnML1-A-Pad4)")
 			(pinfunction "A")
@@ -692,7 +692,7 @@
 			(at 0 -3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 52 "unconnected-(BtnML1-B-Pad5)")
 			(pinfunction "B")
@@ -705,7 +705,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 51 "unconnected-(BtnML1-C-Pad6)")
 			(pinfunction "C")
@@ -728,14 +728,14 @@
 	(footprint "SW_DPDT_XLX:SW_DPDT_XLX"
 		(layer "F.Cu")
 		(uuid "3e9c061e-8b61-4048-b80a-73b07fc16836")
-		(at 125 45.5 180)
+		(at 125 45 180)
 		(descr "DPDT Latching")
 		(tags "SW DPDT")
 		(property "Reference" "BtnMR1"
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "1b077da1-e9f9-4a2f-b990-dac9fe1e181f")
+			(uuid "a866d99c-7aaf-45af-8dfe-6361a3273ac7")
 			(effects
 				(font
 					(size 1 1)
@@ -746,7 +746,7 @@
 		(property "Value" "MR"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "bec284af-b083-4bf7-a355-01b1d897155b")
+			(uuid "259912a3-66e9-45f3-97e8-95a146530f6f")
 			(effects
 				(font
 					(size 1 1)
@@ -758,7 +758,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "d0331e0e-ff01-4292-b934-b429809286c9")
+			(uuid "63619da9-6930-429e-b8dc-958af07d6165")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -770,7 +770,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "da30c167-379e-4b8a-ac3b-7f84ae23d3ad")
+			(uuid "7b2c8106-80de-4934-9e96-aca2251942c0")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -908,7 +908,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 58 "unconnected-(BtnMR1-A-Pad1)")
 			(pinfunction "A")
@@ -919,7 +919,7 @@
 			(at 0 3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 77 "Net-(BtnBusOut1-MR)")
 			(pinfunction "B")
@@ -932,7 +932,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 25 "GND1")
 			(pinfunction "C")
@@ -945,7 +945,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 60 "unconnected-(BtnMR1-A-Pad4)")
 			(pinfunction "A")
@@ -956,7 +956,7 @@
 			(at 0 -3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 59 "unconnected-(BtnMR1-B-Pad5)")
 			(pinfunction "B")
@@ -969,7 +969,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 61 "unconnected-(BtnMR1-C-Pad6)")
 			(pinfunction "C")
@@ -992,14 +992,14 @@
 	(footprint "SW_DPDT_XLX:SW_DPDT_XLX"
 		(layer "F.Cu")
 		(uuid "5bb469c7-4117-4376-a91f-fa8a7e675dfb")
-		(at 105.96 28 180)
+		(at 105.46 28 180)
 		(descr "DPDT Latching")
 		(tags "SW DPDT")
 		(property "Reference" "BtnTM1"
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "27ff84b5-0a60-43ee-ab7e-b59075f7628b")
+			(uuid "b1d51150-21a7-47ae-ba02-be82d7832daa")
 			(effects
 				(font
 					(size 1 1)
@@ -1010,7 +1010,7 @@
 		(property "Value" "TM"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "6cf059cd-77b4-4c78-bc27-de68d930bd58")
+			(uuid "0bd27407-0872-411d-bc25-ddc2c8f10849")
 			(effects
 				(font
 					(size 1 1)
@@ -1022,7 +1022,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "e5f997a8-3b7f-4bb7-be4c-718f1d8fd089")
+			(uuid "d2e76e04-1ad8-4ddc-ad71-864c3c34ec3a")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1034,7 +1034,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "23b6906f-addd-422e-bb34-eac4809f0075")
+			(uuid "354b829f-8e73-4f1c-8127-18b48f370e16")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1172,7 +1172,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 32 "unconnected-(BtnTM1-A-Pad1)")
 			(pinfunction "A")
@@ -1183,7 +1183,7 @@
 			(at 0 3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 74 "Net-(BtnBusOut1-TM)")
 			(pinfunction "B")
@@ -1196,7 +1196,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 25 "GND1")
 			(pinfunction "C")
@@ -1209,7 +1209,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 31 "unconnected-(BtnTM1-A-Pad4)")
 			(pinfunction "A")
@@ -1220,7 +1220,7 @@
 			(at 0 -3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 33 "unconnected-(BtnTM1-B-Pad5)")
 			(pinfunction "B")
@@ -1233,7 +1233,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 30 "unconnected-(BtnTM1-C-Pad6)")
 			(pinfunction "C")
@@ -1256,14 +1256,14 @@
 	(footprint "SW_DPDT_XLX:SW_DPDT_XLX"
 		(layer "F.Cu")
 		(uuid "84aafbeb-fa84-4b7c-9091-a1062531ec4a")
-		(at 86.92 28 180)
+		(at 86 28 180)
 		(descr "DPDT Latching")
 		(tags "SW DPDT")
 		(property "Reference" "BtnTL1"
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "df4f7794-84bd-4430-b4c8-366ca2d39cb7")
+			(uuid "bd534d6f-e783-4d75-8bae-68ff4ba4bddc")
 			(effects
 				(font
 					(size 1 1)
@@ -1274,7 +1274,7 @@
 		(property "Value" "TL"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "ec4ca2f7-7189-4f94-a46b-52f720b6693f")
+			(uuid "a4971faa-1b3a-4ffc-99b1-31e9d7359f1d")
 			(effects
 				(font
 					(size 1 1)
@@ -1286,7 +1286,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "61fd08ef-2abe-465c-944e-ff1243b1bd46")
+			(uuid "4cdc9742-0b14-4b0c-8e95-a7800bdcb18f")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1298,7 +1298,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "53129065-fe4c-4fa4-ba82-63f213fe4e0e")
+			(uuid "d187e6e0-018f-42b9-b0bc-6d5821ab75f3")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1436,7 +1436,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 27 "unconnected-(BtnTL1-A-Pad1)")
 			(pinfunction "A")
@@ -1447,7 +1447,7 @@
 			(at 0 3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 78 "Net-(BtnBusOut1-TL)")
 			(pinfunction "B")
@@ -1460,7 +1460,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 25 "GND1")
 			(pinfunction "C")
@@ -1473,7 +1473,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 29 "unconnected-(BtnTL1-A-Pad4)")
 			(pinfunction "A")
@@ -1484,7 +1484,7 @@
 			(at 0 -3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 28 "unconnected-(BtnTL1-B-Pad5)")
 			(pinfunction "B")
@@ -1497,7 +1497,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 26 "unconnected-(BtnTL1-C-Pad6)")
 			(pinfunction "C")
@@ -1520,14 +1520,14 @@
 	(footprint "SW_DPDT_XLX:SW_DPDT_XLX"
 		(layer "F.Cu")
 		(uuid "bcaf27ca-3319-4d6f-bffb-9c00cd574521")
-		(at 86.96 61.5 180)
+		(at 86 62 180)
 		(descr "DPDT Latching")
 		(tags "SW DPDT")
 		(property "Reference" "BtnBL1"
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "29fb9edb-c473-4e99-8090-2b1113b9c221")
+			(uuid "c130f002-25a8-47a5-a5b7-a077bbc3fec2")
 			(effects
 				(font
 					(size 1 1)
@@ -1538,7 +1538,7 @@
 		(property "Value" "BL"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "feeab6e4-4e7c-4471-b0e7-d73f5d967d65")
+			(uuid "293e1cbb-7980-4b45-a7e1-496ecf7da7c6")
 			(effects
 				(font
 					(size 1 1)
@@ -1550,7 +1550,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "b19bc1be-a922-4ef7-aaba-70138e6871cb")
+			(uuid "4c822993-5955-4bd5-9732-f04756372caf")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1562,7 +1562,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "b4144a40-a65c-410f-9280-4499b1f194f2")
+			(uuid "ed3533c1-8d4b-4871-af49-89918055e979")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1700,7 +1700,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 39 "unconnected-(BtnBL1-A-Pad1)")
 			(pinfunction "A")
@@ -1711,7 +1711,7 @@
 			(at 0 3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 62 "Net-(BtnBusOut1-BL)")
 			(pinfunction "B")
@@ -1724,7 +1724,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 25 "GND1")
 			(pinfunction "C")
@@ -1737,7 +1737,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 40 "unconnected-(BtnBL1-A-Pad4)")
 			(pinfunction "A")
@@ -1748,7 +1748,7 @@
 			(at 0 -3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 38 "unconnected-(BtnBL1-B-Pad5)")
 			(pinfunction "B")
@@ -1761,7 +1761,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 41 "unconnected-(BtnBL1-C-Pad6)")
 			(pinfunction "C")
@@ -1784,14 +1784,14 @@
 	(footprint "SW_DPDT_XLX:SW_DPDT_XLX"
 		(layer "F.Cu")
 		(uuid "d0532d4a-15bf-4fb7-937d-054bf66a9712")
-		(at 124.96 61.5 180)
+		(at 125 62 180)
 		(descr "DPDT Latching")
 		(tags "SW DPDT")
 		(property "Reference" "BtnBR1"
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "e1562d6a-ef44-4614-8cb0-f3c0640b316c")
+			(uuid "503f3852-4ab2-42a0-a1a4-c26cd7927573")
 			(effects
 				(font
 					(size 1 1)
@@ -1802,7 +1802,7 @@
 		(property "Value" "BR"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "f1a30f10-6ba5-43c0-bb3b-0063cbcacaf1")
+			(uuid "7bafad76-b3e2-45dc-abf1-469d77276554")
 			(effects
 				(font
 					(size 1 1)
@@ -1814,7 +1814,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "7ac4dc21-9878-46b6-be1d-4249697e55d0")
+			(uuid "b24702dc-74f7-425b-8816-6e6b1e4d3f54")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1826,7 +1826,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "1c9a7ff4-ae1c-48d9-b1a3-27640d62d654")
+			(uuid "01842e81-8b79-4261-9d9f-f4bc241d8f48")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1964,7 +1964,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 47 "unconnected-(BtnBR1-A-Pad1)")
 			(pinfunction "A")
@@ -1975,7 +1975,7 @@
 			(at 0 3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 64 "Net-(BtnBusOut1-BR)")
 			(pinfunction "B")
@@ -1988,7 +1988,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 25 "GND1")
 			(pinfunction "C")
@@ -2001,7 +2001,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 46 "unconnected-(BtnBR1-A-Pad4)")
 			(pinfunction "A")
@@ -2012,7 +2012,7 @@
 			(at 0 -3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 49 "unconnected-(BtnBR1-B-Pad5)")
 			(pinfunction "B")
@@ -2025,7 +2025,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 48 "unconnected-(BtnBR1-C-Pad6)")
 			(pinfunction "C")
@@ -2048,14 +2048,14 @@
 	(footprint "SW_DPDT_XLX:SW_DPDT_XLX"
 		(layer "F.Cu")
 		(uuid "e034fd5d-15cd-4860-8aa7-8071c3f6c13f")
-		(at 124.92 28.04 180)
+		(at 125 28 180)
 		(descr "DPDT Latching")
 		(tags "SW DPDT")
 		(property "Reference" "BtnTR1"
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "f53da6eb-82b6-48b0-8955-4ae5484f9a65")
+			(uuid "684cdeb8-001f-419a-81c0-9e344639e181")
 			(effects
 				(font
 					(size 1 1)
@@ -2066,7 +2066,7 @@
 		(property "Value" "TR"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "a6411108-ae8e-470c-9890-7b241c56954c")
+			(uuid "09fcb58a-b00a-456c-958a-8e3a4e0cc23c")
 			(effects
 				(font
 					(size 1 1)
@@ -2078,7 +2078,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "b933e641-1ed2-4354-a115-4c3341a5525d")
+			(uuid "109012a3-6d77-474a-b3fd-4a8aa065877d")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2090,7 +2090,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "261e28db-0a43-49c9-965d-4127d684bdf8")
+			(uuid "f0becb7a-3bb5-479a-8acd-fb8999cb764d")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2228,7 +2228,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 35 "unconnected-(BtnTR1-A-Pad1)")
 			(pinfunction "A")
@@ -2239,7 +2239,7 @@
 			(at 0 3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 79 "Net-(BtnBusOut1-TR)")
 			(pinfunction "B")
@@ -2252,7 +2252,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 25 "GND1")
 			(pinfunction "C")
@@ -2265,7 +2265,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 36 "unconnected-(BtnTR1-A-Pad4)")
 			(pinfunction "A")
@@ -2276,7 +2276,7 @@
 			(at 0 -3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 37 "unconnected-(BtnTR1-B-Pad5)")
 			(pinfunction "B")
@@ -2289,7 +2289,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 34 "unconnected-(BtnTR1-C-Pad6)")
 			(pinfunction "C")
@@ -2312,7 +2312,7 @@
 	(footprint "ESP32_DevKit_V1_DOIT:esp32_devkit_v1_doit"
 		(layer "F.Cu")
 		(uuid "e1c0d8ed-48ac-4db1-849e-5be741140329")
-		(at 22.94 36.3 90)
+		(at 22 36 90)
 		(descr "ESPWROOM32, ESP32, 30 GPIOs version")
 		(property "Reference" "U1"
 			(at 0 10.47 90)
@@ -3534,14 +3534,14 @@
 	(footprint "SW_DPDT_XLX:SW_DPDT_XLX"
 		(layer "F.Cu")
 		(uuid "f35bfbc3-8cd6-49a0-84e6-a8e9c0ae4e22")
-		(at 105.96 45.5 180)
+		(at 105.46 45 180)
 		(descr "DPDT Latching")
 		(tags "SW DPDT")
 		(property "Reference" "BtnMM1"
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "c5af78d0-95f2-484f-b70a-fe929cc52d8f")
+			(uuid "c58362b1-90f0-4b21-a761-5b6c3eb216a8")
 			(effects
 				(font
 					(size 1 1)
@@ -3552,7 +3552,7 @@
 		(property "Value" "MM"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "1c76fb94-597e-4418-bf55-234df1c1db9b")
+			(uuid "ccb676e0-5132-4ed2-9a6c-ba4ed16f5ff5")
 			(effects
 				(font
 					(size 1 1)
@@ -3564,7 +3564,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "69806fa5-43f5-48a4-9498-826b66792ed2")
+			(uuid "d47ea7e9-bb9e-4859-aaaf-3d721242c447")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3576,7 +3576,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "4a0a0339-5d47-4351-9355-a6981609849c")
+			(uuid "82fc3a16-85dc-4cce-af8c-0f907a53675c")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3714,7 +3714,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 55 "unconnected-(BtnMM1-A-Pad1)")
 			(pinfunction "A")
@@ -3725,7 +3725,7 @@
 			(at 0 3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 76 "Net-(BtnBusOut1-MM)")
 			(pinfunction "B")
@@ -3738,7 +3738,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 25 "GND1")
 			(pinfunction "C")
@@ -3751,7 +3751,7 @@
 			(drill 0.8
 				(offset 0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 57 "unconnected-(BtnMM1-A-Pad4)")
 			(pinfunction "A")
@@ -3762,7 +3762,7 @@
 			(at 0 -3 180)
 			(size 1.85 2.5)
 			(drill 0.8)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 56 "unconnected-(BtnMM1-B-Pad5)")
 			(pinfunction "B")
@@ -3775,7 +3775,7 @@
 			(drill 0.8
 				(offset -0.2 0)
 			)
-			(layers "B.Cu")
+			(layers "*.Cu")
 			(remove_unused_layers no)
 			(net 54 "unconnected-(BtnMM1-C-Pad6)")
 			(pinfunction "C")
@@ -4247,7 +4247,7 @@
 	(footprint "Connector_JST:JST_XH_B10B-XH-A_1x10_P2.50mm_Vertical"
 		(layer "B.Cu")
 		(uuid "1339f31c-75d1-4e80-9885-0d3185796972")
-		(at 94.46 17.5)
+		(at 94 17)
 		(descr "JST XH series connector, B10B-XH-A (http://www.jst-mfg.com/product/pdf/eng/eXH.pdf), generated with kicad-footprint-generator")
 		(tags "connector JST XH vertical")
 		(property "Reference" "BtnBusOut1"
@@ -4784,7 +4784,7 @@
 	(footprint "Connector_JST:JST_XH_B10B-XH-A_1x10_P2.50mm_Vertical"
 		(layer "B.Cu")
 		(uuid "6fc03eb7-a414-4416-89bb-5bb2fec6e115")
-		(at 58.5 17 180)
+		(at 58 17 180)
 		(descr "JST XH series connector, B10B-XH-A (http://www.jst-mfg.com/product/pdf/eng/eXH.pdf), generated with kicad-footprint-generator")
 		(tags "connector JST XH vertical")
 		(property "Reference" "BtnBusIn1"
@@ -5321,7 +5321,7 @@
 	(footprint "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical"
 		(layer "B.Cu")
 		(uuid "c921ef0a-7d0e-4d0f-b2dd-68a1fbaf4c20")
-		(at 31 55.5 180)
+		(at 31 55 180)
 		(descr "JST XH series connector, B4B-XH-A (http://www.jst-mfg.com/product/pdf/eng/eXH.pdf), generated with kicad-footprint-generator")
 		(tags "connector JST XH vertical")
 		(property "Reference" "Display_connector1"
