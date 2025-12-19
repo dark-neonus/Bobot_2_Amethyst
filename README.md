@@ -77,10 +77,11 @@ esp32 dedicated i2c pins. This display use SSD1309 driver.
 
 #### Pinout
 
-| Signal  | GPIO    |
-| :-----  | -----:  |
-|   SDA   | GPIO21  |
-|   SCL   | GPIO22  |
+| Pin / Signal | Source / Connection | GPIO / Net | Description |
+|-------------|---------------------|------------|-------------|
+| SDA | ESP32 | GPIO21 | I²C data line (main I²C bus) |
+| SCL | ESP32 | GPIO22 | I²C clock line (main I²C bus) |
+
 
 #### Links
 
@@ -103,8 +104,36 @@ There are two parallely connecteed li-po battery in bobot, which in total give 6
 Bobot have power management module, which will consist of: 
 - `BQ25895` I2C Controlled Single Cell 5-A Fast Charger with MaxChargeTM for High Input
 Voltage and Adjustable Voltage 3.1-A Boost Operation
-- <mark>Thermistor as BQ25895 requires</mark>
+- <mark>Thermistor as BQ25895 requires
 - Connection to esp32 i2c bus
+
+#### Pinout
+
+##### Activelly used
+
+| Pin / Signal | Connection | Net / GPIO | Description |
+|-------------|------------|------------|-------------|
+| VBUS | USB Type-C port | VBUS | Charger input supply (3.9–14 V). Decouple close to pin. |
+| PGND | Power ground | GND | High-current ground return for charger, battery, SYS, PMID caps. |
+| SDA | ESP32 | GPIO21 | I²C data line for charger configuration/monitoring. |
+| SCL | ESP32 | GPIO22 | I²C clock line for charger configuration/monitoring. |
+| INT | ESP32 | GPIO (TBD) | Open-drain interrupt (active-low) for charge/fault events; 10 kΩ pull-up to 3.3 V. |
+| STAT | Status LED | — | Open-drain charge status output; LED + resistor to 3.3 V. |
+| CE | GND | — | Charge enable (active-low); tied to GND for always-enabled charging. |
+| ILIM | Resistor → GND | R_ILIM | Hardware input-current limit set to ~3 A (protects USB source). |
+| TS | NTC divider | NTC | Battery temperature sense via NTC near battery; safety-critical. |
+| BAT | Battery pack | BAT+ | Battery positive terminal (1S Li-ion/Li-poly). |
+| SYS | System rail | SYS | Managed system supply; feeds 3.3 V regulator for ESP32. |
+| SW | Inductor | SW | Switching node to inductor (keep short, noisy). |
+| BTST | Bootstrap cap | BTST | Bootstrap capacitor to SW for high-side gate drive. |
+| REGN | Decoupling cap | REGN | Internal LDO output; bias rail (decouple to GND). |
+| EPAD (PowerPAD) | PCB copper | PGND | Thermal + electrical ground; must be soldered to PGND with vias. | 
+| OTG | Disabled | Tie to GND | Prevents boost (OTG) mode activation. |
+| PMID | Not exported | Local ceramic caps to PGND only (≥8.2 µF) | Do not power loads; keep short return. |
+| QON | Unused | Leave unconnected | Internal pull-up keeps default behavior. |
+| DSEL | Unused | Leave unconnected | Not needed without external USB data switch. |
+| D+ | USB only | Connect only to USB connector | Used internally for BC1.2/MaxCharge detection. |
+| D− | USB only | Connect only to USB connector | Same as D+. |
 
 #### Links
 
