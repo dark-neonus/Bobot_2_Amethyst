@@ -22,13 +22,13 @@ They are with 3d printed tops with symbols representing purpose.
 
 Buttons:
 ```
- ______________________________
-|   Back   |  Up  |  Switch UI |
-|__________|______|____________|
-|   Left   |  OK  |   Right    |
-|__________|______|____________|
-| Settings | Down |    Text    |
-|__________|______|____________|
+ _________________________________
+|    Back    |  Up  |  Switch UI  |
+|____________|______|_____________|
+|    Left    |  OK  |    Right    |
+|____________|______|_____________|
+|  Settings  | Down |    Debug    |
+|____________|______|_____________|
 ```
 
 ### Power switch
@@ -104,26 +104,46 @@ There are two parallely connecteed li-po battery in bobot, which in total give 6
 Bobot have power management module, which will consist of: 
 - `BQ25895` I2C Controlled Single Cell 5-A Fast Charger with MaxChargeTM for High Input
 Voltage and Adjustable Voltage 3.1-A Boost Operation
-- <mark>Thermistor as BQ25895 requires
-- Connection to esp32 i2c bus
+- <mark>Thermistor as BQ25895 requires placed onto battery with RTHcold=\<THERMISTOR_RESISTANCE_AT_COLD_THREASHOLD_TEMPERATURE> and RTHhot=\<THERMISTOR_RESISTANCE_AT_HOT_THREASHOLD_TEMPERATURE> values
+- Led to indicate charge status
+- Connection to esp32 I2C bus and INT pin support
+
+And will do:
+- Active conversation with Esp32 with transfering measurements of voltages and current(battery monitor feature)
+
+#### Configurations
+
+Hardware:
+
+1. CE pin tied to GND to enable charging
+2. <mark>Using resistors RT1=\<R1_OF_THERMISTOR_VOLTAGE_DIVIDER> and RT2=\<R2_OF_THERMISTOR_VOLTAGE_DIVIDER> to make BQ25895 read thermistor values correct
+3. Led going from SYS to STAT through 2.2kOhm resistor
+4. <mark>Connecting ILIM pin to GND through Iinmax=\<RESISTANCE_OF_ILIM_RESITOR>. Calculated using formula from datasheet at section 8.2.12
+5. OTG pin connected to GND to disable boost mode activation
+
+Software:
+
+1. Set register CONV_RATE to 1 to enable active conversation between BQ25895 and ESP32
+2. <mark>Set register IINLIM to value representing \<DESIRED_INPUT_CURRENT>
+3. <mark>Set TREG to \<DESIRED_MAXIMAL_IC_TEMPERATURE> to regulate at which temperature BQ25895 will lower down charging current
 
 #### Pinout
 
-##### Activelly used
-
 | Pin / Signal | Connection | Net / GPIO | Description |
 |-------------|------------|------------|-------------|
-| VBUS | USB Type-C port | VBUS | Charger input supply (3.9–14 V). Decouple close to pin. |
-| PGND | Power ground | GND | High-current ground return for charger, battery, SYS, PMID caps. |
 | SDA | ESP32 | GPIO21 | I²C data line for charger configuration/monitoring. |
 | SCL | ESP32 | GPIO22 | I²C clock line for charger configuration/monitoring. |
 | INT | ESP32 | GPIO (TBD) | Open-drain interrupt (active-low) for charge/fault events; 10 kΩ pull-up to 3.3 V. |
+| VBUS | USB Type-C port | VBUS | Charger input supply (3.9–14 V). Decouple close to pin. |
+| D+ | USB only | Connect only to USB connector | Used internally for BC1.2/MaxCharge detection. |
+| D− | USB only | Connect only to USB connector | Same as D+. |
 | STAT | Status LED | — | Open-drain charge status output; LED + resistor to 3.3 V. |
-| CE | GND | — | Charge enable (active-low); tied to GND for always-enabled charging. |
-| ILIM | Resistor → GND | R_ILIM | Hardware input-current limit set to ~3 A (protects USB source). |
 | TS | NTC divider | NTC | Battery temperature sense via NTC near battery; safety-critical. |
 | BAT | Battery pack | BAT+ | Battery positive terminal (1S Li-ion/Li-poly). |
 | SYS | System rail | SYS | Managed system supply; feeds 3.3 V regulator for ESP32. |
+| PGND | Power ground | GND | High-current ground return for charger, battery, SYS, PMID caps. |
+| CE | GND | — | Charge enable (active-low); tied to GND for always-enabled charging. |
+| ILIM | Resistor → GND | R_ILIM | Hardware input-current limit set to ~3 A (protects USB source). |
 | SW | Inductor | SW | Switching node to inductor (keep short, noisy). |
 | BTST | Bootstrap cap | BTST | Bootstrap capacitor to SW for high-side gate drive. |
 | REGN | Decoupling cap | REGN | Internal LDO output; bias rail (decouple to GND). |
@@ -132,8 +152,6 @@ Voltage and Adjustable Voltage 3.1-A Boost Operation
 | PMID | Not exported | Local ceramic caps to PGND only (≥8.2 µF) | Do not power loads; keep short return. |
 | QON | Unused | Leave unconnected | Internal pull-up keeps default behavior. |
 | DSEL | Unused | Leave unconnected | Not needed without external USB data switch. |
-| D+ | USB only | Connect only to USB connector | Used internally for BC1.2/MaxCharge detection. |
-| D− | USB only | Connect only to USB connector | Same as D+. |
 
 #### Links
 
