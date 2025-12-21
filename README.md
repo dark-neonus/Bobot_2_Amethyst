@@ -52,6 +52,17 @@ At the right side there is panel on 2 screws which give access to main microcont
 
 ## Hardware
 
+### Shortcut components list
+
+| Component | Quantity| Description | Datasheet | Store |
+|-------------|-------|-------------|------------|-------------|
+|ESP32 unnamed DevKit board|1|Microcontroller|-|-|
+|BQ25895 | 1 | power managment ic | [datasheet](https://www.ti.com/lit/ds/symlink/bq25895.pdf) | [store](https://www.aliexpress.com/item/1005008068013158.html) |
+| MCP23017 | 1 | 16-Bit I/O Expander with Serial Interface(16 parallel pins to I2C) | [datasheet](https://ww1.microchip.com/downloads/en/devicedoc/20001952c.pdf) | [store](https://www.mini-tech.com.ua/ua/i2c-rasshiritel-portov-mcp23017-e-so-smd) |
+| MPR121QR2  | 1 | 12 touch buttons driver with I2C interface | [datasheet](https://files.seeedstudio.com/wiki/Grove-I2C_Touch_Sensor/res/Freescale_Semiconductor;MPR121QR2.pdf) | [store](https://www.aliexpress.com/item/1005006944721047.html) |
+
+
+
 ### ESP32 Microcontroller
 
 #### Description
