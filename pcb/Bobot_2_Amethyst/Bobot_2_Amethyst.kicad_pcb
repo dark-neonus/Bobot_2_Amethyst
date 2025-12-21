@@ -3794,7 +3794,7 @@
 		(property "Reference" "BatteryIn1"
 			(at 1.25 3.55 0)
 			(layer "B.SilkS")
-			(uuid "91a5b6ca-e61a-43ba-b70b-cdcfed91e300")
+			(uuid "9f0ef343-28db-4716-bd75-49dcb0df7bc4")
 			(effects
 				(font
 					(size 1 1)
@@ -3806,7 +3806,7 @@
 		(property "Value" "Conn_01x02_Socket"
 			(at 1.25 -4.6 0)
 			(layer "B.Fab")
-			(uuid "89b64948-b764-49bd-9023-e27342051d6c")
+			(uuid "18f7faf7-edf4-439e-a14f-99876c59c3b9")
 			(effects
 				(font
 					(size 1 1)
@@ -3819,7 +3819,7 @@
 			(at 0 0 0)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "a358a17a-eec4-4744-931e-d2492e923cc2")
+			(uuid "5109df84-e915-4f51-8cdb-9bb62b7079cc")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3832,7 +3832,7 @@
 			(at 0 0 0)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "c31369b8-a40a-411a-ac72-790150cd4cff")
+			(uuid "9627650d-6816-417a-9ea5-20185999afa1")
 			(effects
 				(font
 					(size 1.27 1.27)
