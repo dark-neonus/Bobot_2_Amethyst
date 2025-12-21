@@ -179,24 +179,24 @@
 	(net 59 "unconnected-(BtnMR1-B-Pad5)")
 	(net 60 "unconnected-(BtnMR1-A-Pad4)")
 	(net 61 "unconnected-(BtnMR1-C-Pad6)")
-	(net 62 "Net-(BtnBusOut1-BL)")
-	(net 63 "Net-(BtnBusOut1-BM)")
-	(net 64 "Net-(BtnBusOut1-BR)")
-	(net 65 "Net-(BtnBusIn1-TL)")
-	(net 66 "Net-(BtnBusIn1-BL)")
-	(net 67 "Net-(BtnBusIn1-ML)")
-	(net 68 "Net-(BtnBusIn1-MR)")
-	(net 69 "Net-(BtnBusIn1-TR)")
-	(net 70 "Net-(BtnBusIn1-BR)")
-	(net 71 "Net-(BtnBusIn1-MM)")
-	(net 72 "Net-(BtnBusIn1-TM)")
-	(net 73 "Net-(BtnBusIn1-BM)")
-	(net 74 "Net-(BtnBusOut1-TM)")
-	(net 75 "Net-(BtnBusOut1-ML)")
-	(net 76 "Net-(BtnBusOut1-MM)")
-	(net 77 "Net-(BtnBusOut1-MR)")
-	(net 78 "Net-(BtnBusOut1-TL)")
-	(net 79 "Net-(BtnBusOut1-TR)")
+	(net 62 "Net-(BtnBusOut1-BR)")
+	(net 63 "Net-(BtnBusIn1-TL)")
+	(net 64 "Net-(BtnBusIn1-BL)")
+	(net 65 "Net-(BtnBusIn1-ML)")
+	(net 66 "Net-(BtnBusIn1-MR)")
+	(net 67 "Net-(BtnBusIn1-TR)")
+	(net 68 "Net-(BtnBusIn1-BR)")
+	(net 69 "Net-(BtnBusIn1-MM)")
+	(net 70 "Net-(BtnBusIn1-TM)")
+	(net 71 "Net-(BtnBusIn1-BM)")
+	(net 72 "Net-(BtnBusOut1-TR)")
+	(net 73 "Net-(BtnBusOut1-TL)")
+	(net 74 "Net-(BtnBusOut1-MR)")
+	(net 75 "Net-(BtnBusOut1-MM)")
+	(net 76 "Net-(BtnBusOut1-ML)")
+	(net 77 "Net-(BtnBusOut1-TM)")
+	(net 78 "Net-(BtnBusOut1-BM)")
+	(net 79 "Net-(BtnBusOut1-BL)")
 	(footprint "SW_DPDT_XLX:SW_DPDT_XLX"
 		(layer "F.Cu")
 		(uuid "0270aefd-a124-4359-b07e-20e12c4dbe62")
@@ -207,7 +207,7 @@
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "71dd0a65-4672-4a16-8d0f-d1cecf77e3d1")
+			(uuid "e8d83c2f-00a6-4480-bdbd-b7708d526c02")
 			(effects
 				(font
 					(size 1 1)
@@ -218,7 +218,7 @@
 		(property "Value" "BM"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "98af88b4-0843-4fbb-ba28-31619a7e6fb0")
+			(uuid "ad73d9e6-6134-4c2d-bc25-1eb56ecc34e7")
 			(effects
 				(font
 					(size 1 1)
@@ -230,7 +230,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "f365ad57-d793-423e-bc1e-7c9419d51250")
+			(uuid "77ffb8e7-7d3b-49c1-b85e-1eeb8a1032a6")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -242,7 +242,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "a857d6e1-53fc-423f-9d7a-717c02ccc644")
+			(uuid "1cfcd08a-1d86-4508-abe3-92f2a75bd68c")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -250,7 +250,6 @@
 				)
 			)
 		)
-		(path "/a9187386-f961-415c-ad32-9d7ab3f15da1")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -393,7 +392,7 @@
 			(drill 0.8)
 			(layers "*.Cu")
 			(remove_unused_layers no)
-			(net 63 "Net-(BtnBusOut1-BM)")
+			(net 78 "Net-(BtnBusOut1-BM)")
 			(pinfunction "B")
 			(pintype "passive")
 			(uuid "9ab246ec-933b-48cb-8ea7-a4bc15ff83dc")
@@ -471,7 +470,7 @@
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "c896d8a7-fde2-4329-af4a-0f76cd03b4ea")
+			(uuid "2522aaea-7f9f-427e-9aef-69240039a770")
 			(effects
 				(font
 					(size 1 1)
@@ -482,7 +481,7 @@
 		(property "Value" "ML"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "40996214-6de7-49ad-b693-2e59dde4fe8e")
+			(uuid "cadb6e42-2a88-476a-98e1-981f71cddd6b")
 			(effects
 				(font
 					(size 1 1)
@@ -494,7 +493,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "a3eb36a6-027f-43d8-bcb6-7965c453b0d4")
+			(uuid "1761e69d-a18d-4159-bdd0-03c7688334db")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -506,7 +505,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "160c11bd-3406-4a75-8869-219a190b5b8b")
+			(uuid "a401128e-c32c-426e-b5da-684d69e6339e")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -514,7 +513,6 @@
 				)
 			)
 		)
-		(path "/9fcd92ed-3eb5-4695-ad1a-0cba6dd1f031")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -657,7 +655,7 @@
 			(drill 0.8)
 			(layers "*.Cu")
 			(remove_unused_layers no)
-			(net 75 "Net-(BtnBusOut1-ML)")
+			(net 76 "Net-(BtnBusOut1-ML)")
 			(pinfunction "B")
 			(pintype "passive")
 			(uuid "7c602320-6ea5-4ab3-a6f1-bd67c2329464")
@@ -735,7 +733,7 @@
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "a866d99c-7aaf-45af-8dfe-6361a3273ac7")
+			(uuid "9ac2a88e-1ce1-4686-90d1-d3fb3a436e1f")
 			(effects
 				(font
 					(size 1 1)
@@ -746,7 +744,7 @@
 		(property "Value" "MR"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "259912a3-66e9-45f3-97e8-95a146530f6f")
+			(uuid "b684cd28-653e-4c80-b27f-9f74b42adc9e")
 			(effects
 				(font
 					(size 1 1)
@@ -758,7 +756,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "63619da9-6930-429e-b8dc-958af07d6165")
+			(uuid "169c91e8-5578-4c95-a263-b0ed260555e9")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -770,7 +768,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "7b2c8106-80de-4934-9e96-aca2251942c0")
+			(uuid "00e4cd05-369b-469c-8357-08b61b9c69b5")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -778,7 +776,6 @@
 				)
 			)
 		)
-		(path "/dad77507-204e-477e-b068-5c9756a6acac")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -921,7 +918,7 @@
 			(drill 0.8)
 			(layers "*.Cu")
 			(remove_unused_layers no)
-			(net 77 "Net-(BtnBusOut1-MR)")
+			(net 74 "Net-(BtnBusOut1-MR)")
 			(pinfunction "B")
 			(pintype "passive")
 			(uuid "42c89c07-edd8-4e2f-8beb-3db7d95fec24")
@@ -999,7 +996,7 @@
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "b1d51150-21a7-47ae-ba02-be82d7832daa")
+			(uuid "6c571930-7c74-4443-aab9-1eedf7e102df")
 			(effects
 				(font
 					(size 1 1)
@@ -1010,7 +1007,7 @@
 		(property "Value" "TM"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "0bd27407-0872-411d-bc25-ddc2c8f10849")
+			(uuid "61db6662-879e-4685-a31f-acbc3d588103")
 			(effects
 				(font
 					(size 1 1)
@@ -1022,7 +1019,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "d2e76e04-1ad8-4ddc-ad71-864c3c34ec3a")
+			(uuid "a079e622-9ff2-4311-b312-94e6cc3a6afa")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1034,7 +1031,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "354b829f-8e73-4f1c-8127-18b48f370e16")
+			(uuid "5088287c-fc6f-4006-b88c-41b21b7d3c96")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1042,7 +1039,6 @@
 				)
 			)
 		)
-		(path "/3b6bcdad-4c95-43fc-9435-ea37a180f9d7")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -1185,7 +1181,7 @@
 			(drill 0.8)
 			(layers "*.Cu")
 			(remove_unused_layers no)
-			(net 74 "Net-(BtnBusOut1-TM)")
+			(net 77 "Net-(BtnBusOut1-TM)")
 			(pinfunction "B")
 			(pintype "passive")
 			(uuid "063e4712-242e-4edb-a9a1-1d5ce9482281")
@@ -1263,7 +1259,7 @@
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "bd534d6f-e783-4d75-8bae-68ff4ba4bddc")
+			(uuid "d1d592a1-69ff-4b6c-bd8d-7a98261201b6")
 			(effects
 				(font
 					(size 1 1)
@@ -1274,7 +1270,7 @@
 		(property "Value" "TL"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "a4971faa-1b3a-4ffc-99b1-31e9d7359f1d")
+			(uuid "a46b1995-cf88-44f6-a780-d97859abff62")
 			(effects
 				(font
 					(size 1 1)
@@ -1286,7 +1282,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "4cdc9742-0b14-4b0c-8e95-a7800bdcb18f")
+			(uuid "0215cd46-44fe-463e-88db-a46c95c9317e")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1298,7 +1294,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "d187e6e0-018f-42b9-b0bc-6d5821ab75f3")
+			(uuid "8ba4aa9f-2dce-47a8-8c3f-7be2712365fc")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1306,7 +1302,6 @@
 				)
 			)
 		)
-		(path "/d5a27caf-fa6d-489e-8ced-1cb989ac84cb")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -1449,7 +1444,7 @@
 			(drill 0.8)
 			(layers "*.Cu")
 			(remove_unused_layers no)
-			(net 78 "Net-(BtnBusOut1-TL)")
+			(net 73 "Net-(BtnBusOut1-TL)")
 			(pinfunction "B")
 			(pintype "passive")
 			(uuid "5fb38928-7243-4555-9664-f9c71959896b")
@@ -1527,7 +1522,7 @@
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "c130f002-25a8-47a5-a5b7-a077bbc3fec2")
+			(uuid "76f4790b-e1fd-4f25-bd68-cb443d4822c4")
 			(effects
 				(font
 					(size 1 1)
@@ -1538,7 +1533,7 @@
 		(property "Value" "BL"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "293e1cbb-7980-4b45-a7e1-496ecf7da7c6")
+			(uuid "bef4c2bf-14c5-4ff5-bbac-fcc7d7f75ef1")
 			(effects
 				(font
 					(size 1 1)
@@ -1550,7 +1545,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "4c822993-5955-4bd5-9732-f04756372caf")
+			(uuid "833e3736-ddf9-42f4-8a2d-4949b5e92de7")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1562,7 +1557,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "ed3533c1-8d4b-4871-af49-89918055e979")
+			(uuid "0504513f-0f13-498e-904b-df9089191bd2")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1570,7 +1565,6 @@
 				)
 			)
 		)
-		(path "/aceb95be-4c9a-4c76-aaf8-513b62f0ae39")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -1713,7 +1707,7 @@
 			(drill 0.8)
 			(layers "*.Cu")
 			(remove_unused_layers no)
-			(net 62 "Net-(BtnBusOut1-BL)")
+			(net 79 "Net-(BtnBusOut1-BL)")
 			(pinfunction "B")
 			(pintype "passive")
 			(uuid "714f7157-967e-426e-830b-2953cef909ea")
@@ -1834,7 +1828,6 @@
 				)
 			)
 		)
-		(path "/bcc5990c-01ef-4bc0-9f91-ef33783c99ab")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -1977,7 +1970,7 @@
 			(drill 0.8)
 			(layers "*.Cu")
 			(remove_unused_layers no)
-			(net 64 "Net-(BtnBusOut1-BR)")
+			(net 62 "Net-(BtnBusOut1-BR)")
 			(pinfunction "B")
 			(pintype "passive")
 			(uuid "7d9b66fd-a5da-4e40-aeaa-d7d4ed7c86c4")
@@ -2055,7 +2048,7 @@
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "684cdeb8-001f-419a-81c0-9e344639e181")
+			(uuid "6870848e-bc35-4d3f-9dc0-2630cea6a22d")
 			(effects
 				(font
 					(size 1 1)
@@ -2066,7 +2059,7 @@
 		(property "Value" "TR"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "09fcb58a-b00a-456c-958a-8e3a4e0cc23c")
+			(uuid "9b629be8-fef8-45d4-a5ab-246143ff41e0")
 			(effects
 				(font
 					(size 1 1)
@@ -2078,7 +2071,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "109012a3-6d77-474a-b3fd-4a8aa065877d")
+			(uuid "26f859f7-13df-46d8-b827-37490567c19a")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2090,7 +2083,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "f0becb7a-3bb5-479a-8acd-fb8999cb764d")
+			(uuid "430da741-e6a8-4bc7-a391-304565ad9d50")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -2098,7 +2091,6 @@
 				)
 			)
 		)
-		(path "/695d6d18-66a7-423b-8ca0-53f880ee8497")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -2241,7 +2233,7 @@
 			(drill 0.8)
 			(layers "*.Cu")
 			(remove_unused_layers no)
-			(net 79 "Net-(BtnBusOut1-TR)")
+			(net 72 "Net-(BtnBusOut1-TR)")
 			(pinfunction "B")
 			(pintype "passive")
 			(uuid "52c94fd2-8093-4e1e-8f7f-3c5b924ed4ba")
@@ -2361,7 +2353,6 @@
 			)
 		)
 		(property ki_fp_filters "esp32?devkit?v1?doit*")
-		(path "/68e88ebc-caaa-4df3-93bc-46d5dea3105f")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr smd)
@@ -3062,7 +3053,7 @@
 			(drill 0.762)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 65 "Net-(BtnBusIn1-TL)")
+			(net 63 "Net-(BtnBusIn1-TL)")
 			(pinfunction "IO15")
 			(pintype "bidirectional")
 			(uuid "4bef2dae-3caf-42c2-848c-8fffbcbe84fa")
@@ -3084,7 +3075,7 @@
 			(drill 0.762)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 72 "Net-(BtnBusIn1-TM)")
+			(net 70 "Net-(BtnBusIn1-TM)")
 			(pinfunction "IO4")
 			(pintype "bidirectional")
 			(uuid "a7a8955f-4bc4-4e63-a0a0-5cee3d99dfae")
@@ -3095,7 +3086,7 @@
 			(drill 0.762)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 69 "Net-(BtnBusIn1-TR)")
+			(net 67 "Net-(BtnBusIn1-TR)")
 			(pinfunction "IO16")
 			(pintype "bidirectional")
 			(uuid "d08984a2-b0ba-47b2-a75d-26269c54b877")
@@ -3106,7 +3097,7 @@
 			(drill 0.762)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 67 "Net-(BtnBusIn1-ML)")
+			(net 65 "Net-(BtnBusIn1-ML)")
 			(pinfunction "IO17")
 			(pintype "bidirectional")
 			(uuid "35c763db-30d4-4900-8ee8-e142c6356dbf")
@@ -3117,7 +3108,7 @@
 			(drill 0.762)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 71 "Net-(BtnBusIn1-MM)")
+			(net 69 "Net-(BtnBusIn1-MM)")
 			(pinfunction "IO5")
 			(pintype "bidirectional")
 			(uuid "0f792fbf-82af-4a19-82de-7b12ede3c89c")
@@ -3128,7 +3119,7 @@
 			(drill 0.762)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 68 "Net-(BtnBusIn1-MR)")
+			(net 66 "Net-(BtnBusIn1-MR)")
 			(pinfunction "IO18")
 			(pintype "bidirectional")
 			(uuid "39fb1f01-55e9-4212-8e59-25226f63f566")
@@ -3139,7 +3130,7 @@
 			(drill 0.762)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 66 "Net-(BtnBusIn1-BL)")
+			(net 64 "Net-(BtnBusIn1-BL)")
 			(pinfunction "IO19")
 			(pintype "bidirectional")
 			(uuid "e6a5b409-1c7e-4a86-990e-6d003c473536")
@@ -3150,7 +3141,7 @@
 			(drill 0.762)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 73 "Net-(BtnBusIn1-BM)")
+			(net 71 "Net-(BtnBusIn1-BM)")
 			(pinfunction "IO21")
 			(pintype "bidirectional")
 			(uuid "c52d79b5-67e4-4023-8604-6dacf2f4d8b0")
@@ -3183,7 +3174,7 @@
 			(drill 0.762)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 70 "Net-(BtnBusIn1-BR)")
+			(net 68 "Net-(BtnBusIn1-BR)")
 			(pinfunction "IO22")
 			(pintype "bidirectional")
 			(uuid "11b6c436-5647-4d8b-ac79-c02cd628ccc9")
@@ -3541,7 +3532,7 @@
 			(at 0.635 -9.525 0)
 			(layer "F.SilkS")
 			(hide yes)
-			(uuid "c58362b1-90f0-4b21-a761-5b6c3eb216a8")
+			(uuid "bf09e9f6-f028-4336-9afd-99485b30ecc7")
 			(effects
 				(font
 					(size 1 1)
@@ -3552,7 +3543,7 @@
 		(property "Value" "MM"
 			(at 0 -6.985 0)
 			(layer "F.SilkS")
-			(uuid "ccb676e0-5132-4ed2-9a6c-ba4ed16f5ff5")
+			(uuid "630162dd-8760-4824-8f65-41db70c1e433")
 			(effects
 				(font
 					(size 1 1)
@@ -3564,7 +3555,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "d47ea7e9-bb9e-4859-aaaf-3d721242c447")
+			(uuid "7cf49832-0360-4947-97b4-d258b4e10cf5")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3576,7 +3567,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "82fc3a16-85dc-4cce-af8c-0f907a53675c")
+			(uuid "8985ed77-cdf2-45d8-aca9-9e1ccce2a4ee")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3584,7 +3575,6 @@
 				)
 			)
 		)
-		(path "/de8be862-6cd6-4357-b0d9-7bdb6ef45ceb")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -3727,7 +3717,7 @@
 			(drill 0.8)
 			(layers "*.Cu")
 			(remove_unused_layers no)
-			(net 76 "Net-(BtnBusOut1-MM)")
+			(net 75 "Net-(BtnBusOut1-MM)")
 			(pinfunction "B")
 			(pintype "passive")
 			(uuid "5a1204c8-fa69-42a4-b092-0fe183af6625")
@@ -3804,7 +3794,7 @@
 		(property "Reference" "BatteryIn1"
 			(at 1.25 3.55 0)
 			(layer "B.SilkS")
-			(uuid "9d116ffb-3907-4d77-a379-1a82c94e5832")
+			(uuid "91a5b6ca-e61a-43ba-b70b-cdcfed91e300")
 			(effects
 				(font
 					(size 1 1)
@@ -3816,7 +3806,7 @@
 		(property "Value" "Conn_01x02_Socket"
 			(at 1.25 -4.6 0)
 			(layer "B.Fab")
-			(uuid "31c4d656-b73b-4953-ae59-2155e99e695f")
+			(uuid "89b64948-b764-49bd-9023-e27342051d6c")
 			(effects
 				(font
 					(size 1 1)
@@ -3829,7 +3819,7 @@
 			(at 0 0 0)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "38078684-2c68-47a6-8536-8fb13b38e7d8")
+			(uuid "a358a17a-eec4-4744-931e-d2492e923cc2")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3842,7 +3832,7 @@
 			(at 0 0 0)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "7c9478ec-1d2b-4558-ac6f-c1d9430a68b1")
+			(uuid "c31369b8-a40a-411a-ac72-790150cd4cff")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4253,7 +4243,7 @@
 		(property "Reference" "BtnBusOut1"
 			(at 11.25 3.55 0)
 			(layer "B.SilkS")
-			(uuid "74624a7b-817a-4467-b9fb-705670dde147")
+			(uuid "570bdc55-cc88-4c8e-b5b4-31147a95f223")
 			(effects
 				(font
 					(size 1 1)
@@ -4265,7 +4255,7 @@
 		(property "Value" "BtnBusOut"
 			(at 11.25 -4.6 0)
 			(layer "B.Fab")
-			(uuid "edee8b4b-50f3-49cc-ab92-298c8e101267")
+			(uuid "ecc99e33-cfdd-44ca-ba94-b991e75ca70a")
 			(effects
 				(font
 					(size 1 1)
@@ -4278,7 +4268,7 @@
 			(at 0 0 0)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "adc30b40-eed9-40c1-b129-40e0673da384")
+			(uuid "e4265ebc-7e43-4edf-973e-5bb9767e3c1b")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4291,7 +4281,7 @@
 			(at 0 0 0)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "108da5d5-ce92-4f7f-80ee-4faab514e054")
+			(uuid "8d71c720-a87b-4832-ac3f-7c65abec23d6")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4301,7 +4291,6 @@
 			)
 		)
 		(property ki_fp_filters "Connector*:*_1x??_*")
-		(path "/32ed202d-7d94-439a-bfaa-e8c4ad7bde5f")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -4675,7 +4664,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 78 "Net-(BtnBusOut1-TL)")
+			(net 73 "Net-(BtnBusOut1-TL)")
 			(pinfunction "TL")
 			(pintype "passive")
 			(uuid "c3101081-7dff-4e10-99d9-7d8ef3fc6e52")
@@ -4686,7 +4675,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 74 "Net-(BtnBusOut1-TM)")
+			(net 77 "Net-(BtnBusOut1-TM)")
 			(pinfunction "TM")
 			(pintype "passive")
 			(uuid "2f6c7128-0480-4534-b41d-a13c5a4c621c")
@@ -4697,7 +4686,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 79 "Net-(BtnBusOut1-TR)")
+			(net 72 "Net-(BtnBusOut1-TR)")
 			(pinfunction "TR")
 			(pintype "passive")
 			(uuid "c9fded9d-d249-4fab-a935-a3da30c88186")
@@ -4708,7 +4697,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 75 "Net-(BtnBusOut1-ML)")
+			(net 76 "Net-(BtnBusOut1-ML)")
 			(pinfunction "ML")
 			(pintype "passive")
 			(uuid "686323fd-733e-4f79-be80-5fc529b04018")
@@ -4719,7 +4708,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 76 "Net-(BtnBusOut1-MM)")
+			(net 75 "Net-(BtnBusOut1-MM)")
 			(pinfunction "MM")
 			(pintype "passive")
 			(uuid "70863043-a802-425d-8915-fda6b08ae6f0")
@@ -4730,7 +4719,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 77 "Net-(BtnBusOut1-MR)")
+			(net 74 "Net-(BtnBusOut1-MR)")
 			(pinfunction "MR")
 			(pintype "passive")
 			(uuid "adae1487-e470-4c91-80d9-2e9c5d764aa3")
@@ -4741,7 +4730,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 62 "Net-(BtnBusOut1-BL)")
+			(net 79 "Net-(BtnBusOut1-BL)")
 			(pinfunction "BL")
 			(pintype "passive")
 			(uuid "4e4fce99-a027-41c8-9b50-b6a652b299df")
@@ -4752,7 +4741,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 63 "Net-(BtnBusOut1-BM)")
+			(net 78 "Net-(BtnBusOut1-BM)")
 			(pinfunction "BM")
 			(pintype "passive")
 			(uuid "543942f7-c272-4665-a203-8bb25e18d524")
@@ -4763,7 +4752,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 64 "Net-(BtnBusOut1-BR)")
+			(net 62 "Net-(BtnBusOut1-BR)")
 			(pinfunction "BR")
 			(pintype "passive")
 			(uuid "6a7bfc6d-997e-4ffc-bcab-5cf29dd0c3a5")
@@ -4838,7 +4827,6 @@
 			)
 		)
 		(property ki_fp_filters "Connector*:*_1x??_*")
-		(path "/d0f71fec-ee5a-4ed7-9769-915dfa0d21b4")
 		(sheetname "/")
 		(sheetfile "Bobot_2_Amethyst.kicad_sch")
 		(attr through_hole)
@@ -5212,7 +5200,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 65 "Net-(BtnBusIn1-TL)")
+			(net 63 "Net-(BtnBusIn1-TL)")
 			(pinfunction "TL")
 			(pintype "passive")
 			(uuid "10ea1582-3f5d-4e23-8f59-4acf48529225")
@@ -5223,7 +5211,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 72 "Net-(BtnBusIn1-TM)")
+			(net 70 "Net-(BtnBusIn1-TM)")
 			(pinfunction "TM")
 			(pintype "passive")
 			(uuid "e06b2fe2-aaf7-437c-9535-b4ce4d122223")
@@ -5234,7 +5222,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 69 "Net-(BtnBusIn1-TR)")
+			(net 67 "Net-(BtnBusIn1-TR)")
 			(pinfunction "TR")
 			(pintype "passive")
 			(uuid "590cdf08-7037-4e65-9f75-85cc4e449de0")
@@ -5245,7 +5233,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 67 "Net-(BtnBusIn1-ML)")
+			(net 65 "Net-(BtnBusIn1-ML)")
 			(pinfunction "ML")
 			(pintype "passive")
 			(uuid "4535551d-f406-4c85-98ff-ca03cbf1ab5a")
@@ -5256,7 +5244,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 71 "Net-(BtnBusIn1-MM)")
+			(net 69 "Net-(BtnBusIn1-MM)")
 			(pinfunction "MM")
 			(pintype "passive")
 			(uuid "8e72b2f6-0e34-42ac-993d-11c8bb1da093")
@@ -5267,7 +5255,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 68 "Net-(BtnBusIn1-MR)")
+			(net 66 "Net-(BtnBusIn1-MR)")
 			(pinfunction "MR")
 			(pintype "passive")
 			(uuid "4869a255-6979-4cfb-90b1-783cf948ce40")
@@ -5278,7 +5266,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 66 "Net-(BtnBusIn1-BL)")
+			(net 64 "Net-(BtnBusIn1-BL)")
 			(pinfunction "BL")
 			(pintype "passive")
 			(uuid "24f31968-9ea6-440a-87a2-20ea837bfba9")
@@ -5289,7 +5277,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 73 "Net-(BtnBusIn1-BM)")
+			(net 71 "Net-(BtnBusIn1-BM)")
 			(pinfunction "BM")
 			(pintype "passive")
 			(uuid "e43b10ab-9227-4dce-9d3f-6febb76315aa")
@@ -5300,7 +5288,7 @@
 			(drill 0.95)
 			(layers "*.Cu" "*.Mask")
 			(remove_unused_layers no)
-			(net 70 "Net-(BtnBusIn1-BR)")
+			(net 68 "Net-(BtnBusIn1-BR)")
 			(pinfunction "BR")
 			(pintype "passive")
 			(uuid "767d4678-1818-48a6-a858-ae9be7f90255")

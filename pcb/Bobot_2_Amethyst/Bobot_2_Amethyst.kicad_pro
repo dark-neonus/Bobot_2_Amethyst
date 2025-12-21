@@ -490,7 +490,7 @@
       "plot": "",
       "pos_files": "",
       "specctra_dsn": "",
-      "step": "3d_models/Bobot_2_Amethyst.step",
+      "step": "../../../3d_models/Bobot_2/Bobot_2_Amethyst.step",
       "svg": "",
       "vrml": ""
     },
@@ -625,6 +625,18 @@
     [
       "bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b",
       "Root"
+    ],
+    [
+      "3798d5c3-66f8-4c4b-8feb-e9ac26400cfc",
+      "MainBoard"
+    ],
+    [
+      "3d6f8017-1b43-42ff-a495-49c782d7917a",
+      "Buttons_Board"
+    ],
+    [
+      "5d5eafdb-8221-4cd8-b933-bb95f76ec7d8",
+      "BMS_Board"
     ]
   ],
   "text_variables": {}
