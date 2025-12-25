@@ -23,7 +23,7 @@ They are with 3d printed tops with symbols representing purpose.
 Buttons:
 ```
  _________________________________
-|    Back    |  Up  |  Switch UI  |
+|    Back    |  Up  |     UI      |
 |____________|______|_____________|
 |    Left    |  OK  |    Right    |
 |____________|______|_____________|
@@ -60,18 +60,21 @@ At the right side there is panel on 2 screws which give access to main microcont
 |BQ25895 | 1 | power managment ic | [datasheet](https://www.ti.com/lit/ds/symlink/bq25895.pdf) | [store](https://www.aliexpress.com/item/1005008068013158.html) |
 | MCP23017 | 1 | 16-Bit I/O Expander with Serial Interface(16 parallel pins to I2C) | [datasheet](https://ww1.microchip.com/downloads/en/devicedoc/20001952c.pdf) | [store](https://www.aliexpress.com/item/1005006974304942.html) |
 | MPR121QR2  | 1 | 12 touch buttons driver with I2C interface | [datasheet](https://files.seeedstudio.com/wiki/Grove-I2C_Touch_Sensor/res/Freescale_Semiconductor;MPR121QR2.pdf) | [store](https://www.aliexpress.com/item/1005006944721047.html) |
+| TL2285OA  | 9 | Push latch button without fixation | [datasheet](https://www.alldatasheet.com/html-pdf/437236/E-SWITCH/TL2285OA/385/1/TL2285OA.html) | [store](https://www.aliexpress.com/item/1005006775951751.html) |
 
 | Component | Quantity| Store |
 |-------------|-------|-------------|
 |Resistor 150Ω|1|[store](https://www.aliexpress.com/item/1005008789698065.html)|
 |Resistor 4.7kΩ|2|[store](https://www.aliexpress.com/item/1005008789698065.html)|
 |Resistor 5.1kΩ|1|[store](https://www.aliexpress.com/item/1005008789698065.html)|
+|Resistor 10kΩ|18|[store](https://www.aliexpress.com/item/1005008789698065.html)|
 |Resistor 33kΩ|1|[store](https://www.aliexpress.com/item/1005008789698065.html)|
-|Capacitor 1uF|1|[store](https://www.aliexpress.com/item/1005010516436707.html)|
+|Capacitor 1uF|10|[store](https://www.aliexpress.com/item/1005010516436707.html)|
 |Capacitor 4.7uF|1|[store](https://www.aliexpress.com/item/1005010516436707.html)|
 |Capacitor 10uF|4|[store](https://www.aliexpress.com/item/1005010516436707.html)|
 |Capacitor 47nF|1|[store](https://www.aliexpress.com/item/1005010516436707.html)|
 |Inductor 2.2uH|1|[store](https://www.aliexpress.com/item/1005001699576419.html)|
+|Thermistor B3435 MF52D 10K|1|[store](https://www.aliexpress.com/item/1005006804356266.html)|
 
 
 
@@ -127,7 +130,9 @@ There are two parallely connecteed li-po battery in bobot, which in total give 6
 Bobot have power management module, which will consist of: 
 - `BQ25895` I2C Controlled Single Cell 5-A Fast Charger with MaxChargeTM for High Input
 Voltage and Adjustable Voltage 3.1-A Boost Operation
-- <mark>Thermistor as BQ25895 requires placed onto battery with RTHcold=\<THERMISTOR_RESISTANCE_AT_COLD_THREASHOLD_TEMPERATURE> and RTHhot=\<THERMISTOR_RESISTANCE_AT_HOT_THREASHOLD_TEMPERATURE> values
+- Thermistor as BQ25895 requires placed onto battery with
+  RTHcold = 27 kΩ at 0 °C
+  and RTHhot = 4.9 kΩ at 45 °C values
 - Led to indicate charge status
 - Connection to esp32 I2C bus and INT pin support
 
@@ -139,9 +144,9 @@ And will do:
 Hardware:
 
 1. CE pin tied to GND to enable charging
-2. Using resistors RT1=5.1 kOhm and RT2=33 kOhm to make BQ25895 read thermistor values correct
-3. Led going from SYS to STAT through 2.2kOhm resistor
-4. Connecting ILIM pin to GND through Rilim=150 Ohm resistor. Calculated using formula from datasheet at section 8.2.12. 150 Ohm resistor limit input current to ~2.6A.
+2. Using resistors RT1=5.1 kΩ and RT2=33 kΩ to make BQ25895 read thermistor values correct
+3. Led going from SYS to STAT through 2.2kΩ resistor
+4. Connecting ILIM pin to GND through Rilim=150 Ω resistor. Calculated using formula from datasheet at section 8.2.12. 150 Ω resistor limit input current to ~2.6A.
 5. OTG pin connected to GND to disable boost mode activation
 
 Software:
