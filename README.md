@@ -58,8 +58,20 @@ At the right side there is panel on 2 screws which give access to main microcont
 |-------------|-------|-------------|------------|-------------|
 |ESP32 unnamed DevKit board|1|Microcontroller|-|-|
 |BQ25895 | 1 | power managment ic | [datasheet](https://www.ti.com/lit/ds/symlink/bq25895.pdf) | [store](https://www.aliexpress.com/item/1005008068013158.html) |
-| MCP23017 | 1 | 16-Bit I/O Expander with Serial Interface(16 parallel pins to I2C) | [datasheet](https://ww1.microchip.com/downloads/en/devicedoc/20001952c.pdf) | [store](https://www.mini-tech.com.ua/ua/i2c-rasshiritel-portov-mcp23017-e-so-smd) |
+| MCP23017 | 1 | 16-Bit I/O Expander with Serial Interface(16 parallel pins to I2C) | [datasheet](https://ww1.microchip.com/downloads/en/devicedoc/20001952c.pdf) | [store](https://www.aliexpress.com/item/1005006974304942.html) |
 | MPR121QR2  | 1 | 12 touch buttons driver with I2C interface | [datasheet](https://files.seeedstudio.com/wiki/Grove-I2C_Touch_Sensor/res/Freescale_Semiconductor;MPR121QR2.pdf) | [store](https://www.aliexpress.com/item/1005006944721047.html) |
+
+| Component | Quantity| Store |
+|-------------|-------|-------------|
+|Resistor 150Ω|1|[store](https://www.aliexpress.com/item/1005008789698065.html)|
+|Resistor 4.7kΩ|2|[store](https://www.aliexpress.com/item/1005008789698065.html)|
+|Resistor 5.1kΩ|1|[store](https://www.aliexpress.com/item/1005008789698065.html)|
+|Resistor 33kΩ|1|[store](https://www.aliexpress.com/item/1005008789698065.html)|
+|Capacitor 1uF|1|[store](https://www.aliexpress.com/item/1005010516436707.html)|
+|Capacitor 4.7uF|1|[store](https://www.aliexpress.com/item/1005010516436707.html)|
+|Capacitor 10uF|4|[store](https://www.aliexpress.com/item/1005010516436707.html)|
+|Capacitor 47nF|1|[store](https://www.aliexpress.com/item/1005010516436707.html)|
+|Inductor 2.2uH|1|[store](https://www.aliexpress.com/item/1005001699576419.html)|
 
 
 
@@ -127,9 +139,9 @@ And will do:
 Hardware:
 
 1. CE pin tied to GND to enable charging
-2. <mark>Using resistors RT1=\<R1_OF_THERMISTOR_VOLTAGE_DIVIDER> and RT2=\<R2_OF_THERMISTOR_VOLTAGE_DIVIDER> to make BQ25895 read thermistor values correct
+2. Using resistors RT1=5.1 kOhm and RT2=33 kOhm to make BQ25895 read thermistor values correct
 3. Led going from SYS to STAT through 2.2kOhm resistor
-4. <mark>Connecting ILIM pin to GND through Iinmax=\<RESISTANCE_OF_ILIM_RESITOR>. Calculated using formula from datasheet at section 8.2.12
+4. Connecting ILIM pin to GND through Rilim=150 Ohm resistor. Calculated using formula from datasheet at section 8.2.12. 150 Ohm resistor limit input current to ~2.6A.
 5. OTG pin connected to GND to disable boost mode activation
 
 Software:
