@@ -779,7 +779,7 @@
 			(color 0 0 0 0.0000)
 		)
 		(uuid "3798d5c3-66f8-4c4b-8feb-e9ac26400cfc")
-		(property "Sheetname" "MainBoard"
+		(property "Sheetname" "Main_Board"
 			(at 204.47 84.3784 0)
 			(show_name yes)
 			(effects
@@ -886,6 +886,48 @@
 			(project "Bobot_2_Amethyst"
 				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b"
 					(page "4")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 345.44 82.55)
+		(size 76.2 49.53)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "923b2986-93ba-4f51-aa9b-43d203c6378f")
+		(property "Sheetname" "Touch_Board"
+			(at 345.44 81.8384 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "TouchBoard.kicad_sch"
+			(at 345.44 132.6646 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "Bobot_2_Amethyst"
+				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b"
+					(page "5")
 				)
 			)
 		)

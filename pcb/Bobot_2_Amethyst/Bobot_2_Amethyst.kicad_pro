@@ -628,7 +628,7 @@
     ],
     [
       "3798d5c3-66f8-4c4b-8feb-e9ac26400cfc",
-      "MainBoard"
+      "Main_Board"
     ],
     [
       "3d6f8017-1b43-42ff-a495-49c782d7917a",
@@ -637,6 +637,10 @@
     [
       "5d5eafdb-8221-4cd8-b933-bb95f76ec7d8",
       "BMS_Board"
+    ],
+    [
+      "923b2986-93ba-4f51-aa9b-43d203c6378f",
+      "Touch_Board"
     ]
   ],
   "text_variables": {}

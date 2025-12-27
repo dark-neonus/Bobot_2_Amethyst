@@ -65,14 +65,16 @@ At the right side there is panel on 2 screws which give access to main microcont
 | Component | Quantity| Store |
 |-------------|-------|-------------|
 |Resistor 150Ω|1|[store](https://www.aliexpress.com/item/1005008789698065.html)|
-|Resistor 4.7kΩ|2|[store](https://www.aliexpress.com/item/1005008789698065.html)|
+|Resistor 4.7kΩ|6|[store](https://www.aliexpress.com/item/1005008789698065.html)|
 |Resistor 5.1kΩ|1|[store](https://www.aliexpress.com/item/1005008789698065.html)|
 |Resistor 10kΩ|18|[store](https://www.aliexpress.com/item/1005008789698065.html)|
 |Resistor 33kΩ|1|[store](https://www.aliexpress.com/item/1005008789698065.html)|
+|Resistor 75kΩ|1|[store](https://www.aliexpress.com/item/1005008789698065.html)|
+|Capacitor 47nF|1|[store](https://www.aliexpress.com/item/1005010516436707.html)|
+|Capacitor 100nF|2|[store](https://www.aliexpress.com/item/1005010516436707.html)|
 |Capacitor 1uF|10|[store](https://www.aliexpress.com/item/1005010516436707.html)|
 |Capacitor 4.7uF|1|[store](https://www.aliexpress.com/item/1005010516436707.html)|
 |Capacitor 10uF|4|[store](https://www.aliexpress.com/item/1005010516436707.html)|
-|Capacitor 47nF|1|[store](https://www.aliexpress.com/item/1005010516436707.html)|
 |Inductor 2.2uH|1|[store](https://www.aliexpress.com/item/1005001699576419.html)|
 |Thermistor B3435 MF52D 10K|1|[store](https://www.aliexpress.com/item/1005006804356266.html)|
 

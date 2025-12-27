@@ -4,6 +4,9 @@
 	(generator_version "9.0")
 	(uuid "7f6f3098-ea05-4bc4-bf33-d8b0b6f1267a")
 	(paper "A4")
+	(title_block
+		(title "Main Board with ESP32")
+	)
 	(lib_symbols
 		(symbol "Connector:Conn_01x04_Socket"
 			(pin_numbers
@@ -1931,6 +1934,26 @@
 		)
 		(uuid "21d99fda-fd65-4959-8e24-dd3377ae4df1")
 	)
+	(text_box "MPR121 I2C Port"
+		(exclude_from_sim no)
+		(at 177.8 119.38 0)
+		(size 41.91 36.83)
+		(margins 0.9525 0.9525 0.9525 0.9525)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill
+			(type none)
+		)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left top)
+		)
+		(uuid "650ec839-1c93-4d42-88b7-fceb26e7e396")
+	)
 	(text_box "BQ25895 I2C Port"
 		(exclude_from_sim no)
 		(at 124.46 119.38 0)
@@ -2177,6 +2200,16 @@
 	)
 	(wire
 		(pts
+			(xy 186.69 134.62) (xy 186.69 146.05)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "6891d27e-b7af-4dc2-bc47-2c1be708a9f5")
+	)
+	(wire
+		(pts
 			(xy 27.94 30.48) (xy 30.48 30.48)
 		)
 		(stroke
@@ -2224,6 +2257,16 @@
 			(type default)
 		)
 		(uuid "8063a577-2f36-4a84-aeda-97aeb16c68b0")
+	)
+	(wire
+		(pts
+			(xy 200.66 134.62) (xy 186.69 134.62)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "80dbbab8-3a04-40d2-b372-f7efb96dc6b6")
 	)
 	(wire
 		(pts
@@ -2277,6 +2320,16 @@
 	)
 	(wire
 		(pts
+			(xy 186.69 130.81) (xy 186.69 132.08)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c15ab1c6-c902-44cf-8458-3326be26cfe2")
+	)
+	(wire
+		(pts
 			(xy 133.35 86.36) (xy 133.35 85.09)
 		)
 		(stroke
@@ -2325,6 +2378,16 @@
 		)
 		(uuid "fafccd59-2d43-4daf-8087-d699741a7e27")
 	)
+	(wire
+		(pts
+			(xy 186.69 132.08) (xy 200.66 132.08)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fc790762-ac5a-4515-8aaa-2a4616e8f448")
+	)
 	(hierarchical_label "SYS"
 		(shape passive)
 		(at 59.69 48.26 180)
@@ -2347,6 +2410,17 @@
 		)
 		(uuid "708a3bbf-76fe-4d46-a6b9-f8d2527ad6b7")
 	)
+	(hierarchical_label "SDA"
+		(shape bidirectional)
+		(at 200.66 137.16 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "72edbed0-b5e0-41e0-9ee6-96b2dae58959")
+	)
 	(hierarchical_label "SCL"
 		(shape bidirectional)
 		(at 147.32 139.7 180)
@@ -2357,6 +2431,17 @@
 			(justify right)
 		)
 		(uuid "7336485e-b4ef-46ff-9e49-fa47606598cf")
+	)
+	(hierarchical_label "TCH_INT"
+		(shape passive)
+		(at 200.66 142.24 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "80fdd30c-af46-4425-a991-1187a13c93e0")
 	)
 	(hierarchical_label "3.3V"
 		(shape passive)
@@ -2412,6 +2497,17 @@
 			(justify right)
 		)
 		(uuid "bab363c9-b873-4a51-82bc-ea6d5e2cd033")
+	)
+	(hierarchical_label "SCL"
+		(shape bidirectional)
+		(at 200.66 139.7 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "c669d9a8-f4e9-444d-a371-fd4d0aa8c6f8")
 	)
 	(hierarchical_label "SDA"
 		(shape bidirectional)
@@ -2623,6 +2719,7 @@
 					(size 1.27 1.27)
 				)
 				(justify left)
+				(hide yes)
 			)
 		)
 		(property "Value" "ESP32_DevKit_V1_DOIT"
@@ -3281,6 +3378,217 @@
 			(project "Bobot_2_Amethyst"
 				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b/3798d5c3-66f8-4c4b-8feb-e9ac26400cfc"
 					(reference "#PWR01")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3.3V")
+		(at 186.69 130.81 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "7fe91cc6-f113-4349-870d-de23837036a5")
+		(property "Reference" "#PWR064"
+			(at 186.69 134.62 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+3.3V"
+			(at 186.69 125.73 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 186.69 130.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 186.69 130.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 186.69 130.81 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "f05dced6-45de-4e84-9a9d-455068349bab")
+		)
+		(instances
+			(project "Bobot_2_Amethyst"
+				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b/3798d5c3-66f8-4c4b-8feb-e9ac26400cfc"
+					(reference "#PWR064")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:Conn_01x05_Socket")
+		(at 205.74 137.16 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "80da47dd-24f1-432a-a03f-3c07f7b67f9f")
+		(property "Reference" "J9"
+			(at 204.216 125.222 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+		(property "Value" "Conn_01x05_Socket"
+			(at 196.342 128.524 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Connector_JST:JST_XH_B5B-XH-A_1x05_P2.50mm_Vertical"
+			(at 205.74 111.76 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 205.74 137.16 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x05, script generated"
+			(at 205.994 118.11 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "1b182877-e934-4a7a-9ecb-ea873e5327af")
+		)
+		(pin "2"
+			(uuid "8c59a39c-c8a0-432b-8981-bc07694c459c")
+		)
+		(pin "3"
+			(uuid "53e52867-8976-474f-ae0e-ada0587a37b4")
+		)
+		(pin "4"
+			(uuid "66920285-3095-4e98-bcd6-61caadb2a10a")
+		)
+		(pin "5"
+			(uuid "b32599a1-af39-4a5d-b170-6c61cf6275f7")
+		)
+		(instances
+			(project "Bobot_2_Amethyst"
+				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b/3798d5c3-66f8-4c4b-8feb-e9ac26400cfc"
+					(reference "J9")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 186.69 146.05 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "a082fa32-8e19-40da-b72b-227c3db0e448")
+		(property "Reference" "#PWR065"
+			(at 186.69 152.4 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND"
+			(at 186.69 151.13 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 186.69 146.05 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 186.69 146.05 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 186.69 146.05 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "d9188d68-01f0-4e60-8d84-0f81da751f40")
+		)
+		(instances
+			(project "Bobot_2_Amethyst"
+				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b/3798d5c3-66f8-4c4b-8feb-e9ac26400cfc"
+					(reference "#PWR065")
 					(unit 1)
 				)
 			)

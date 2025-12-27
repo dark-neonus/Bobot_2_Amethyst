@@ -4,6 +4,9 @@
 	(generator_version "9.0")
 	(uuid "5f967156-f7ad-48cc-be32-3d8256fe457a")
 	(paper "A3")
+	(title_block
+		(title "Buttons Board with MCP23017_SO")
+	)
 	(lib_symbols
 		(symbol "Connector:Conn_01x06_Socket"
 			(pin_numbers
@@ -2142,6 +2145,12 @@
 		(uuid "f3e818dc-7e4e-4ac7-81bf-f4f99e53c0a2")
 	)
 	(junction
+		(at 88.9 82.55)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "0479dead-38b4-4720-b28f-b882d22fd367")
+	)
+	(junction
 		(at 191.77 127)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2272,6 +2281,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "bfd2840e-c753-4fff-9cf9-421c2155ef3f")
+	)
+	(junction
+		(at 77.47 80.01)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "e83d9972-aa48-4127-976b-245016116319")
 	)
 	(no_connect
 		(at 137.16 77.47)
@@ -3037,7 +3052,7 @@
 	)
 	(wire
 		(pts
-			(xy 64.77 82.55) (xy 99.06 82.55)
+			(xy 64.77 82.55) (xy 88.9 82.55)
 		)
 		(stroke
 			(width 0)
@@ -3084,6 +3099,16 @@
 			(type default)
 		)
 		(uuid "a1c29b02-7b90-4ac6-9588-423e41a16401")
+	)
+	(wire
+		(pts
+			(xy 77.47 80.01) (xy 96.52 80.01)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a5e9bea5-bfc5-4a16-8330-25123a318d5a")
 	)
 	(wire
 		(pts
@@ -3147,6 +3172,16 @@
 	)
 	(wire
 		(pts
+			(xy 77.47 71.12) (xy 77.47 80.01)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b29c0622-d2ab-4dd7-87a0-8e7e8beb893b")
+	)
+	(wire
+		(pts
 			(xy 304.8 129.54) (xy 304.8 132.08)
 		)
 		(stroke
@@ -3187,13 +3222,23 @@
 	)
 	(wire
 		(pts
-			(xy 60.96 80.01) (xy 96.52 80.01)
+			(xy 60.96 80.01) (xy 77.47 80.01)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
 		(uuid "b4eae27f-b790-49b7-8055-83c4e53eaf0f")
+	)
+	(wire
+		(pts
+			(xy 88.9 71.12) (xy 88.9 82.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bac9fb54-52cd-458f-9998-f46763145712")
 	)
 	(wire
 		(pts
@@ -3267,6 +3312,16 @@
 	)
 	(wire
 		(pts
+			(xy 88.9 60.96) (xy 88.9 63.5)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c29edf72-1175-4ab1-93e7-9db276aa7b24")
+	)
+	(wire
+		(pts
 			(xy 269.24 199.39) (xy 269.24 198.12)
 		)
 		(stroke
@@ -3334,6 +3389,16 @@
 			(type default)
 		)
 		(uuid "cdbcdc31-0c0f-4709-a18e-142a29bc9490")
+	)
+	(wire
+		(pts
+			(xy 88.9 82.55) (xy 99.06 82.55)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "cdecb791-b49f-4423-bc27-b50451fe281a")
 	)
 	(wire
 		(pts
@@ -3474,6 +3539,16 @@
 			(type default)
 		)
 		(uuid "e70518e8-ce2f-4dba-a25d-fe2fc4d25298")
+	)
+	(wire
+		(pts
+			(xy 77.47 60.96) (xy 77.47 63.5)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e79666b2-4cc0-48a6-96e9-15777402f444")
 	)
 	(wire
 		(pts
@@ -3939,6 +4014,73 @@
 	)
 	(symbol
 		(lib_id "power:+3.3V")
+		(at 77.47 60.96 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "04befbe3-969d-4133-a3e5-e5c7983ee57c")
+		(property "Reference" "#PWR070"
+			(at 77.47 64.77 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+3.3V"
+			(at 77.47 55.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 77.47 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 77.47 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 77.47 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "519b23fc-a7f4-431e-bdb6-bdef42f00598")
+		)
+		(instances
+			(project "Bobot_2_Amethyst"
+				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b/3d6f8017-1b43-42ff-a495-49c782d7917a"
+					(reference "#PWR070")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3.3V")
 		(at 280.67 177.8 0)
 		(mirror y)
 		(unit 1)
@@ -4356,6 +4498,73 @@
 			(project "Bobot_2_Amethyst"
 				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b/3d6f8017-1b43-42ff-a495-49c782d7917a"
 					(reference "#PWR061")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3.3V")
+		(at 88.9 60.96 0)
+		(mirror y)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "18d8cded-1316-43fb-a85d-04f70b2da520")
+		(property "Reference" "#PWR071"
+			(at 88.9 64.77 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+3.3V"
+			(at 88.9 55.88 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 88.9 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 88.9 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3.3V\""
+			(at 88.9 60.96 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "1f2506c0-9ce4-4cec-88ad-e7fcf08c5898")
+		)
+		(instances
+			(project "Bobot_2_Amethyst"
+				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b/3d6f8017-1b43-42ff-a495-49c782d7917a"
+					(reference "#PWR071")
 					(unit 1)
 				)
 			)
@@ -5820,6 +6029,76 @@
 			(project "Bobot_2_Amethyst"
 				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b/3d6f8017-1b43-42ff-a495-49c782d7917a"
 					(reference "#PWR044")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_US")
+		(at 77.47 67.31 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "44d9892a-b26c-4b01-8a2c-0d5ff5dd3c51")
+		(property "Reference" "R26"
+			(at 80.01 66.0399 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+		(property "Value" "4.7kΩ"
+			(at 79.502 67.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
+			(at 78.486 67.564 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 77.47 67.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Resistor, US symbol"
+			(at 77.47 67.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "67aad1bd-26f1-40d4-a852-d1ff22c837b3")
+		)
+		(pin "1"
+			(uuid "e8b25b95-91af-4be1-a921-1246bb8be706")
+		)
+		(instances
+			(project "Bobot_2_Amethyst"
+				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b/3d6f8017-1b43-42ff-a495-49c782d7917a"
+					(reference "R26")
 					(unit 1)
 				)
 			)
@@ -7425,6 +7704,76 @@
 	)
 	(symbol
 		(lib_id "Device:R_US")
+		(at 88.9 67.31 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "862d652a-3654-47b9-bf95-cf2ae893348a")
+		(property "Reference" "R27"
+			(at 91.44 66.0399 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+				(hide yes)
+			)
+		)
+		(property "Value" "4.7kΩ"
+			(at 90.932 67.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
+			(at 89.916 67.564 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 88.9 67.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Resistor, US symbol"
+			(at 88.9 67.31 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "ef3c1e03-9bdd-427e-8392-387aa25ba337")
+		)
+		(pin "1"
+			(uuid "84577d43-ee75-4c17-babe-8fded05e7877")
+		)
+		(instances
+			(project "Bobot_2_Amethyst"
+				(path "/bbdd708a-b2b6-43d3-a3a2-0b4b48b4101b/3d6f8017-1b43-42ff-a495-49c782d7917a"
+					(reference "R27")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_US")
 		(at 198.12 63.5 270)
 		(unit 1)
 		(exclude_from_sim no)
@@ -7648,6 +7997,7 @@
 					(size 1.27 1.27)
 				)
 				(justify left)
+				(hide yes)
 			)
 		)
 		(property "Value" "MCP23017_SO"
