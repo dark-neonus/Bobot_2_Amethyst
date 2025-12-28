@@ -225,12 +225,12 @@ Software:
 |-------------|------------|------------|-------------|
 | SDA | ESP32 | GPIO21 | I²C data line (shared with display and BMS). |
 | SCL | ESP32 | GPIO22 | I²C clock line (shared with display and BMS). |
-| INTA | ESP32 | GPIO (TBD) | Interrupt output for Port A changes; 4.7 kΩ pull-up to 3.3V. |
-| INTB | ESP32 | GPIO (TBD) | Interrupt output for Port B changes; 4.7 kΩ pull-up to 3.3V. |
+| INTA | ESP32 | <mark>GPIO (TBD)</mark> | Interrupt output for Port A changes; 4.7 kΩ pull-up to 3.3V. |
+| INTB | ESP32 | <mark>GPIO (TBD)</mark> | Interrupt output for Port B changes; 4.7 kΩ pull-up to 3.3V. |
 | RESET | 3.3V | — | Active-low reset; tied to 3.3V to keep device enabled. |
-| A0 | `<TBD>` | — | I²C address bit 0. |
-| A1 | `<TBD>` | — | I²C address bit 1. |
-| A2 | `<TBD>` | — | I²C address bit 2. |
+| A0 | <mark>TBD</mark> | — | I²C address bit 0. |
+| A1 | <mark>TBD</mark> | — | I²C address bit 1. |
+| A2 | <mark>TBD</mark> | — | I²C address bit 2. |
 | GPA0 | BTN_BACK | — | Back button input (filtered, active-low). |
 | GPA1 | BTN_TOP | — | Up button input (filtered, active-low). |
 | GPA2 | BTN_UI | — | UI button input (filtered, active-low). |
@@ -243,3 +243,62 @@ Software:
 | GPB1-GPB7 | Unused | — | Available for future expansion. |
 | VSS | GND | GND | Ground. |
 | VDD | 3.3V | 3.3V | Power supply (1.8-5.5V). |
+
+### Touch Board Based On MPR121QR2 Touch Controller
+
+#### Description
+
+The MPR121QR2 is a 12-channel capacitive touch sensor controller used to implement a touch-sensitive electrode matrix. It communicates with the ESP32 via I2C at address <mark>I2C_ADDRESS_TBD</mark>. The device provides interrupt functionality through its NOT IRQ pin, allowing the ESP32 to detect touch events efficiently.
+
+The electrode matrix follows the design from [NXP Application Note AN4600](https://www.nxp.com/docs/en/application-note/AN4600.pdf), where touch detection is achieved by the intersection of X and Y electrodes:
+- ELE0-ELE6 correspond to X0-X6 positions (7 columns)
+- ELE7-ELE11 correspond to Y0-Y4 positions (5 rows)
+
+Touch coordinates are determined by the intersection of active XN and YM electrodes.
+
+#### Configurations
+
+Hardware:
+
+1. I2C address set via ADD pin: <mark>ADDRESS_CONFIG_TBD</mark>
+2. NOT IRQ pin pulled up to 3.3V through 4.7 kΩ resistor
+3. REXT pin pulled down through 75 kΩ resistor to GND
+4. 0.1 µF decoupling capacitor between VDD and VSS
+5. 0.1 µF capacitor between VREG and GND for internal regulator stability
+6. PCB electrode layout follows AN4600 routing guidelines
+7. Electrode pad size: 5 mm × 5 mm (increased from AN4600's 3.5-4 mm recommendation)
+
+Software:
+
+1. <mark>Configure touch and release thresholds for each electrode</mark>
+2. <mark>Enable electrode matrix scanning mode according to AN4600</mark>
+3. <mark>Implement touch coordinate decoding from electrode intersections</mark>
+
+#### Pinout
+
+| Pin / Signal | Connection | Net / GPIO | Description |
+|-------------|------------|------------|-------------|
+| SDA | ESP32 | GPIO21 | I²C data line (shared with display, BMS, and button board). |
+| SCL | ESP32 | GPIO22 | I²C clock line (shared with display, BMS, and button board). |
+| IRQ | ESP32 | <mark>GPIO (TBD)</mark> | Active-low interrupt output for touch events; 4.7 kΩ pull-up to 3.3V. |
+| ADD | <mark>TBD</mark> | — | I²C address selection pin. |
+| ELE0 | Touch electrode | X0 | Electrode column 0. |
+| ELE1 | Touch electrode | X1 | Electrode column 1. |
+| ELE2 | Touch electrode | X2 | Electrode column 2. |
+| ELE3 | Touch electrode | X3 | Electrode column 3. |
+| ELE4 | Touch electrode | X4 | Electrode column 4. |
+| ELE5 | Touch electrode | X5 | Electrode column 5. |
+| ELE6 | Touch electrode | X6 | Electrode column 6. |
+| ELE7 | Touch electrode | Y0 | Electrode row 0. |
+| ELE8 | Touch electrode | Y1 | Electrode row 1. |
+| ELE9 | Touch electrode | Y2 | Electrode row 2. |
+| ELE10 | Touch electrode | Y3 | Electrode row 3. |
+| ELE11 | Touch electrode | Y4 | Electrode row 4. |
+| REXT | 75 kΩ → GND | — | External resistor for charge current setting. |
+| VREG | 0.1 µF cap → GND | — | Internal regulator output; decoupled to GND. |
+| VSS | GND | GND | Ground. |
+| VDD | 3.3V | 3.3V | Power supply (1.71-3.6V); 0.1 µF decoupling to GND. |
+
+#### Links
+
+[Application Note AN4600 - MPR121 Proximity Sensing](https://www.nxp.com/docs/en/application-note/AN4600.pdf)
