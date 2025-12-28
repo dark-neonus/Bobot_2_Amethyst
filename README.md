@@ -13,7 +13,7 @@ On the top there is the handle which is hidden in base.
 It rotates out on bearings.
 Rotation is locked by mechanism on top of base.
 
-### Back buttons
+### Back Buttons
 
 #### Description
 
@@ -31,13 +31,13 @@ Buttons:
 |____________|______|_____________|
 ```
 
-### Power switch
+### Power Switch
 
 #### Description
 
 At the bottom of left side of bobot(looking at their face) there is power switch, which is connect batteries to power regulation module.
 
-### Screwdriver with built in case
+### Screwdriver With Built In Case
 
 #### Description
 
@@ -52,7 +52,7 @@ At the right side there is panel on 2 screws which give access to main microcont
 
 ## Hardware
 
-### Shortcut components list
+### Shortcut Components List
 
 | Component | Quantity| Description | Datasheet | Store |
 |-------------|-------|-------------|------------|-------------|
@@ -95,7 +95,7 @@ It will be placed in sockets on pcb on right side of bobot.
 
 [Technical Reference Manual](http://documentation.espressif.com/esp32_technical_reference_manual_en.pdf)
 
-### 2.42 inch OLED I2C display
+### 2.42 Inch OLED I2C Display
 
 #### Description
 
@@ -115,7 +115,7 @@ esp32 dedicated i2c pins. This display use SSD1309 driver.
 
 [General information](https://turkish.chenghaolcd.com/doc/44205281/2-42-oled-display-module-ic-i2c-spi-serial-with-ssd1309-controller.pdf)
 
-### Li-po 3000mAh 3.7V battery 1S2P
+### Li-Po 3000mAh 3.7V Battery 1S2P
 
 #### Description
 
@@ -125,7 +125,7 @@ There are two parallely connecteed li-po battery in bobot, which in total give 6
 
 [Buy](https://prom.ua/ua/p2843472521-litij-polimernyj-akkumulyator.html)
 
-### BQ25895 Battery management module
+### BQ25895 Battery Management Module
 
 #### Description
 
@@ -183,8 +183,63 @@ Software:
 | QON | Unused | Leave unconnected | Internal pull-up keeps default behavior. |
 | DSEL | Unused | Leave unconnected | Not needed without external USB data switch. |
 
-#### Links
+### Button Board Based On MCP23017 I/O Expander
 
-[BQ25895 datasheet](https://www.ti.com/lit/ds/symlink/bq25895.pdf)
+#### Description
 
-[Buy BQ25895](https://www.aliexpress.com/item/1005010544702640.html)
+The MCP23017 is a 16-bit I/O expander used to interface with the 9 back panel buttons. It communicates with the ESP32 via I2C at address <mark>I2C_ADDRESS_TBD</mark>. The device provides interrupt-on-change functionality through its INTA and INTB pins, allowing the ESP32 to detect button presses efficiently without constant polling.
+
+Buttons:
+```
+ _________________________________
+|    Back    |  Up  |     UI      |
+|____________|______|_____________|
+|    Left    |  OK  |    Right    |
+|____________|______|_____________|
+|  Settings  | Down |    Debug    |
+|____________|______|_____________|
+```
+
+#### Configurations
+
+Hardware:
+
+1. I2C address set via A0, A1, A2 pins: <mark>ADDRESS_CONFIG_TBD</mark>
+2. INTA and INTB pins pulled up to 3.3V through 4.7 kΩ resistors
+3. NOT RESET pin tied to 3.3V to keep device enabled
+4. Each button input uses a low-pass filter with:
+   - 10 kΩ pull-up resistor to 3.3V (default state: logic HIGH)
+   - 10 kΩ series resistor between button and IC pin
+   - 1 µF capacitor to GND for debouncing
+5. Buttons are in high-Z state (disconnected) by default, connect to GND when pressed (active-low)
+
+Software:
+
+1. Configure GPA0-GPA7 and GPB0 as inputs with interrupt-on-change enabled
+2. Set up interrupt polarity and configure interrupt mirroring if needed
+
+
+#### Pinout
+
+| Pin / Signal | Connection | Net / GPIO | Description |
+|-------------|------------|------------|-------------|
+| SDA | ESP32 | GPIO21 | I²C data line (shared with display and BMS). |
+| SCL | ESP32 | GPIO22 | I²C clock line (shared with display and BMS). |
+| INTA | ESP32 | GPIO (TBD) | Interrupt output for Port A changes; 4.7 kΩ pull-up to 3.3V. |
+| INTB | ESP32 | GPIO (TBD) | Interrupt output for Port B changes; 4.7 kΩ pull-up to 3.3V. |
+| RESET | 3.3V | — | Active-low reset; tied to 3.3V to keep device enabled. |
+| A0 | `<TBD>` | — | I²C address bit 0. |
+| A1 | `<TBD>` | — | I²C address bit 1. |
+| A2 | `<TBD>` | — | I²C address bit 2. |
+| GPA0 | BTN_BACK | — | Back button input (filtered, active-low). |
+| GPA1 | BTN_TOP | — | Up button input (filtered, active-low). |
+| GPA2 | BTN_UI | — | UI button input (filtered, active-low). |
+| GPA3 | BTN_LEFT | — | Left button input (filtered, active-low). |
+| GPA4 | BTN_OK | — | OK button input (filtered, active-low). |
+| GPA5 | BTN_RIGHT | — | Right button input (filtered, active-low). |
+| GPA6 | BTN_SETTINGS | — | Settings button input (filtered, active-low). |
+| GPA7 | BTN_DOWN | — | Down button input (filtered, active-low). |
+| GPB0 | BTN_DBG | — | Debug button input (filtered, active-low). |
+| GPB1-GPB7 | Unused | — | Available for future expansion. |
+| VSS | GND | GND | Ground. |
+| VDD | 3.3V | 3.3V | Power supply (1.8-5.5V). |
