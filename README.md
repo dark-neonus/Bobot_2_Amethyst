@@ -61,6 +61,8 @@ At the right side there is panel on 2 screws which give access to main microcont
 | MCP23017 | 1 | 16-Bit I/O Expander with Serial Interface(16 parallel pins to I2C) | [datasheet](https://ww1.microchip.com/downloads/en/devicedoc/20001952c.pdf) | [store](https://www.aliexpress.com/item/1005006974304942.html) |
 | MPR121QR2  | 1 | 12 touch buttons driver with I2C interface | [datasheet](https://files.seeedstudio.com/wiki/Grove-I2C_Touch_Sensor/res/Freescale_Semiconductor;MPR121QR2.pdf) | [store](https://www.aliexpress.com/item/1005006944721047.html) |
 | TL2285OA  | 9 | Push latch button without fixation | [datasheet](https://www.alldatasheet.com/html-pdf/437236/E-SWITCH/TL2285OA/385/1/TL2285OA.html) | [store](https://www.aliexpress.com/item/1005006775951751.html) |
+| MAX98357A | 2 | Chip for audio output: DAC + amplifier in one chip | - | [store](https://www.aliexpress.com/item/1005010444800168.html) |
+| BMI160 | 1 | Sensor gyroscope + accelerometer 6DOF | - | [store](https://www.aliexpress.com/item/1005009421405155.html) |
 
 | Component | Quantity| Store |
 |-------------|-------|-------------|
