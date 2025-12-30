@@ -25,7 +25,7 @@ void task_test_SSD1306i2c(void* ignore) {
   u8g2_esp32_hal_init(u8g2_esp32_hal);
 
   u8g2_t u8g2;  // a structure which will contain all the data for one display
-  u8g2_Setup_ssd1306_i2c_128x32_univision_f(
+  u8g2_Setup_ssd1309_i2c_128x64_noname2_f(
       &u8g2, U8G2_R0,
       // u8x8_byte_sw_i2c,
       u8g2_esp32_i2c_byte_cb,
