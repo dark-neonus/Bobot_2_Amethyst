@@ -1,61 +1,130 @@
-#include <driver/gpio.h>
-#include <driver/spi_master.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <driver/i2c_master.h>
 #include <stdio.h>
 #include <string.h>
 #include <u8g2.h>
 
+#include "display.hpp"
+#include "button_driver.hpp"
 #include "sdkconfig.h"
-#include "u8g2_esp32_hal.h"
 
-// SDA - GPIO21
-#define PIN_SDA GPIO_NUM_21
+// Forward declare C function from u8g2 HAL
+extern "C" void u8g2_esp32_hal_set_i2c_bus(i2c_master_bus_handle_t bus_handle);
 
-// SCL - GPIO22
-#define PIN_SCL GPIO_NUM_22
+static const char* TAG = "Bobot";
 
-static const char* TAG = "ssd1306";
+// Global instances
+static Bobot::Display* display = nullptr;
+static Bobot::ButtonDriver* buttonDriver = nullptr;
+static i2c_master_bus_handle_t i2c_bus = nullptr;
 
-void task_test_SSD1306i2c(void* ignore) {
-  u8g2_esp32_hal_t u8g2_esp32_hal = U8G2_ESP32_HAL_DEFAULT;
-  u8g2_esp32_hal.bus.i2c.sda = PIN_SDA;
-  u8g2_esp32_hal.bus.i2c.scl = PIN_SCL;
-  u8g2_esp32_hal_init(u8g2_esp32_hal);
+// Button states
+static bool button_states[9] = {false};
 
-  u8g2_t u8g2;  // a structure which will contain all the data for one display
-  u8g2_Setup_ssd1309_i2c_128x64_noname2_f(
-      &u8g2, U8G2_R0,
-      // u8x8_byte_sw_i2c,
-      u8g2_esp32_i2c_byte_cb,
-      u8g2_esp32_gpio_and_delay_cb);  // init u8g2 structure
-  u8x8_SetI2CAddress(&u8g2.u8x8, 0x78);
+/**
+ * @brief Draw the UI with "meow" text and 9 button squares in 3x3 grid
+ */
+void drawUI() {
+  display->clear();
+  
+  // Draw "meow" text at the top
+  display->setFont(u8g2_font_lubI12_te);
+  display->drawString(40, 15, "meow");
+  
+  // Draw 3x3 grid of button squares
+  // Layout matches button arrangement:
+  // [Back] [Up]   [UI]
+  // [Left] [OK]   [Right]
+  // [Set]  [Down] [Debug]
+  
+  const int square_size = 12;
+  const int spacing = 4;
+  const int start_x = 20;
+  const int start_y = 25;
+  
+  for (int row = 0; row < 3; row++) {
+    for (int col = 0; col < 3; col++) {
+      int button_idx = row * 3 + col;
+      int x = start_x + col * (square_size + spacing);
+      int y = start_y + row * (square_size + spacing);
+      
+      if (button_states[button_idx]) {
+        // Button pressed - draw filled box
+        display->drawBox(x, y, square_size, square_size);
+      } else {
+        // Button not pressed - draw frame
+        display->drawFrame(x, y, square_size, square_size);
+      }
+    }
+  }
+  
+  display->update();
+}
 
-  ESP_LOGI(TAG, "u8g2_InitDisplay");
-  u8g2_InitDisplay(&u8g2);  // send init sequence to the display, display is in
-                            // sleep mode after this,
-
-  ESP_LOGI(TAG, "u8g2_SetPowerSave");
-  u8g2_SetPowerSave(&u8g2, 0);  // wake up display
-  ESP_LOGI(TAG, "u8g2_ClearBuffer");
-  u8g2_ClearBuffer(&u8g2);
-  ESP_LOGI(TAG, "u8g2_DrawBox");
-  u8g2_DrawBox(&u8g2, 0, 26, 80, 6);
-  u8g2_DrawFrame(&u8g2, 0, 26, 100, 6);
-
-  ESP_LOGI(TAG, "u8g2_SetFont");
-  u8g2_SetFont(&u8g2, u8g2_font_lubI12_te);
-  ESP_LOGI(TAG, "u8g2_DrawStr");
-  u8g2_DrawStr(&u8g2, 2, 17, "Hi nkolban!");
-  ESP_LOGI(TAG, "u8g2_SendBuffer");
-  u8g2_SendBuffer(&u8g2);
-
-  ESP_LOGI(TAG, "All done!");
-
-  vTaskDelete(NULL);
+/**
+ * @brief Main UI task that polls buttons and updates display
+ */
+void uiTask(void* parameter) {
+  ESP_LOGI(TAG, "UI task started");
+  
+  while (true) {
+    // Read button states
+    if (buttonDriver->readButtons(button_states)) {
+      // Redraw UI with updated button states
+      drawUI();
+    }
+    
+    // Poll at 20 Hz (50ms)
+    vTaskDelay(pdMS_TO_TICKS(50));
+  }
 }
 
 extern "C" void app_main(void) {
-  xTaskCreate(task_test_SSD1306i2c, "task_test_SSD1306i2c", 4096, NULL, 5, NULL);
+  ESP_LOGI(TAG, "Bobot starting up...");
+  
+  // Initialize I2C master bus (shared by display and button driver)
+  i2c_master_bus_config_t bus_config = {};
+  bus_config.i2c_port = I2C_NUM_0;
+  bus_config.sda_io_num = GPIO_NUM_21;
+  bus_config.scl_io_num = GPIO_NUM_22;
+  bus_config.clk_source = I2C_CLK_SRC_DEFAULT;
+  bus_config.glitch_ignore_cnt = 7;
+  bus_config.flags.enable_internal_pullup = true;
+  
+  esp_err_t ret = i2c_new_master_bus(&bus_config, &i2c_bus);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to create I2C master bus: %s", esp_err_to_name(ret));
+    return;
+  }
+  
+  ESP_LOGI(TAG, "I2C bus initialized");
+  
+  // Set I2C bus for u8g2 HAL to use shared bus
+  u8g2_esp32_hal_set_i2c_bus(i2c_bus);
+  
+  // Initialize display
+  display = new Bobot::Display(GPIO_NUM_21, GPIO_NUM_22, 0x78);
+  if (!display->init()) {
+    ESP_LOGE(TAG, "Failed to initialize display");
+    return;
+  }
+  ESP_LOGI(TAG, "Display initialized");
+  
+  // Initialize button driver
+  buttonDriver = new Bobot::ButtonDriver(i2c_bus, 0x20);
+  if (!buttonDriver->init()) {
+    ESP_LOGE(TAG, "Failed to initialize button driver");
+    return;
+  }
+  ESP_LOGI(TAG, "Button driver initialized");
+  
+  // Draw initial UI
+  drawUI();
+  
+  // Create UI update task
+  xTaskCreate(uiTask, "ui_task", 4096, NULL, 5, NULL);
+  
+  ESP_LOGI(TAG, "Bobot initialized successfully!");
 }
