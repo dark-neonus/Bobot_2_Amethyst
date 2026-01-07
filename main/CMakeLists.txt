@@ -9,6 +9,7 @@ idf_component_register(
         u8g2-hal-esp-idf
         display
         button_driver
+        sd_card
     PRIV_REQUIRES
         driver
         esp_timer

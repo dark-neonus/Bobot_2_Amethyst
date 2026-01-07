@@ -4,7 +4,6 @@ idf_component_register(
     REQUIRES
         driver
         esp_driver_gpio
-        esp_driver_spi
         fatfs
         sdmmc
     )

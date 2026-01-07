@@ -2,7 +2,6 @@
 #define SD_CARD_HPP
 
 #include <driver/gpio.h>
-#include <driver/spi_common.h>
 #include <string>
 
 extern "C" {
@@ -13,28 +12,44 @@ extern "C" {
 namespace Bobot {
 
 /**
- * @brief SD Card driver for microSD card via SPI
+ * @brief SD Card driver for microSD card via 1-bit SDIO mode
  * 
  * This class provides a C++ interface for the ESP-IDF SD card driver
- * using SPI mode. It handles mounting/unmounting and provides easy
- * file operations through the VFS (Virtual File System).
+ * using native 1-bit SDIO mode for better compatibility and speed.
+ * It handles mounting/unmounting and provides easy file operations 
+ * through the VFS (Virtual File System).
+ * 
+ * IMPORTANT: ESP32 SDMMC peripheral uses FIXED pins that cannot be changed:
+ * - CLK  = GPIO14
+ * - CMD  = GPIO15
+ * - DAT0 = GPIO2
+ * - DAT1 = GPIO4  (not used in 1-bit mode)
+ * - DAT2 = GPIO12 (not used in 1-bit mode)
+ * - DAT3 = GPIO13 (not used in 1-bit mode)
  */
 class SDCard {
 public:
     /**
      * @brief Construct a new SDCard object
      * 
-     * @param mosi_pin SPI MOSI pin (default: GPIO23)
-     * @param miso_pin SPI MISO pin (default: GPIO19)
-     * @param clk_pin SPI CLK pin (default: GPIO18)
-     * @param cs_pin SPI CS pin (default: GPIO5)
+     * NOTE: Pin parameters are kept for API compatibility but are IGNORED.
+     * ESP32 SDMMC uses hardware-fixed pins:
+     * - CLK  = GPIO14
+     * - CMD  = GPIO15
+     * - DAT0 = GPIO2
+     * - DAT3 = GPIO13 (pulled HIGH for SD mode)
+     * 
+     * @param cmd_pin IGNORED - SDMMC uses GPIO15
+     * @param dat0_pin IGNORED - SDMMC uses GPIO2
+     * @param clk_pin IGNORED - SDMMC uses GPIO14
+     * @param dat3_pin IGNORED - SDMMC uses GPIO13
      * @param mount_point Mount point path (default: "/sdcard")
      * @param max_files Maximum number of open files (default: 5)
      */
-    SDCard(gpio_num_t mosi_pin = GPIO_NUM_23,
-           gpio_num_t miso_pin = GPIO_NUM_19,
-           gpio_num_t clk_pin = GPIO_NUM_18,
-           gpio_num_t cs_pin = GPIO_NUM_5,
+    SDCard(gpio_num_t cmd_pin = GPIO_NUM_15,
+           gpio_num_t dat0_pin = GPIO_NUM_2,
+           gpio_num_t clk_pin = GPIO_NUM_14,
+           gpio_num_t dat3_pin = GPIO_NUM_13,
            const char* mount_point = "/sdcard",
            size_t max_files = 5);
     
@@ -139,15 +154,15 @@ public:
     bool deleteFile(const char* filename);
 
 private:
-    gpio_num_t mosi_pin_;
-    gpio_num_t miso_pin_;
+    gpio_num_t mosi_pin_;  // CMD pin in SDIO mode
+    gpio_num_t miso_pin_;  // DAT0 pin in SDIO mode
     gpio_num_t clk_pin_;
-    gpio_num_t cs_pin_;
+    gpio_num_t cs_pin_;    // DAT3 pin in SDIO mode (unused in 1-bit)
     std::string mount_point_;
     size_t max_files_;
     bool mounted_;
     sdmmc_card_t* card_;
-    spi_host_device_t spi_host_;
+    int spi_host_;  // Not used in SDIO mode, kept for compatibility
 };
 
 } // namespace Bobot

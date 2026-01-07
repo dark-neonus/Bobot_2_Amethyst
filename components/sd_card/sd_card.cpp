@@ -1,12 +1,11 @@
 #include "sd_card.hpp"
 #include <esp_log.h>
-#include <driver/spi_common.h>
 #include <driver/gpio.h>
 #include <sys/stat.h>
 #include <sys/unistd.h>
 
 extern "C" {
-#include <driver/sdspi_host.h>
+#include <driver/sdmmc_host.h>
 #include <sdmmc_cmd.h>
 }
 
@@ -14,17 +13,17 @@ static const char* TAG = "SDCard";
 
 namespace Bobot {
 
-SDCard::SDCard(gpio_num_t mosi_pin, gpio_num_t miso_pin, gpio_num_t clk_pin,
-               gpio_num_t cs_pin, const char* mount_point, size_t max_files)
-    : mosi_pin_(mosi_pin),
-      miso_pin_(miso_pin),
-      clk_pin_(clk_pin),
-      cs_pin_(cs_pin),
+SDCard::SDCard(gpio_num_t cmd_pin, gpio_num_t dat0_pin, gpio_num_t clk_pin,
+               gpio_num_t dat3_pin, const char* mount_point, size_t max_files)
+    : mosi_pin_(cmd_pin),    // CMD pin (was MOSI)
+      miso_pin_(dat0_pin),   // DAT0 pin (was MISO)
+      clk_pin_(clk_pin),     // CLK pin
+      cs_pin_(dat3_pin),     // DAT3/CS pin (can be unused)
       mount_point_(mount_point),
       max_files_(max_files),
       mounted_(false),
       card_(nullptr),
-      spi_host_(SPI3_HOST) {  // VSPI for pins 23,19,18
+      spi_host_(0) {  // Not used in SD mode
 }
 
 SDCard::~SDCard() {
@@ -38,71 +37,66 @@ bool SDCard::mount(bool format_if_failed) {
     }
 
     ESP_LOGI(TAG, "Initializing SD card");
-    ESP_LOGI(TAG, "Using SPI peripheral");
+    ESP_LOGI(TAG, "Using 1-bit SDIO mode");
 
-    // Reset SD card by toggling CS pin (forces card to idle state)
-    gpio_config_t io_conf = {};
-    io_conf.intr_type = GPIO_INTR_DISABLE;
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = (1ULL << cs_pin_);
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-    gpio_config(&io_conf);
-    
-    // Pulse CS low to reset card state
-    gpio_set_level(cs_pin_, 0);
+    // Reset all SDMMC pins to ensure they're not held by other peripherals
+    gpio_reset_pin(GPIO_NUM_14);  // CLK
+    gpio_reset_pin(GPIO_NUM_15);  // CMD
+    gpio_reset_pin(GPIO_NUM_2);   // DAT0
+    gpio_reset_pin(GPIO_NUM_13);  // DAT3
     vTaskDelay(pdMS_TO_TICKS(10));
-    gpio_set_level(cs_pin_, 1);
-    vTaskDelay(pdMS_TO_TICKS(100));  // Wait for card to stabilize
-    
-    // Now release CS pin for SPI driver to take over
-    gpio_reset_pin(cs_pin_);
-    
-    ESP_LOGI(TAG, "SD card reset sequence complete");
 
-    // Configure mount options - exactly like official example
+    // Configure all SDMMC pins with strong pull-ups for long wire (10cm CLK)
+    gpio_set_pull_mode(GPIO_NUM_14, GPIO_PULLUP_ONLY);  // CLK
+    gpio_set_pull_mode(GPIO_NUM_15, GPIO_PULLUP_ONLY);  // CMD
+    gpio_set_pull_mode(GPIO_NUM_2, GPIO_PULLUP_ONLY);   // DAT0
+    gpio_set_pull_mode(GPIO_NUM_13, GPIO_PULLUP_ONLY);  // DAT3
+
+    // Pull DAT3 (GPIO13) HIGH to enable SD mode (not SPI mode)
+    // DAT3 doubles as CS - must be high for SD card to respond to SD commands
+    gpio_config_t dat3_conf = {};
+    dat3_conf.intr_type = GPIO_INTR_DISABLE;
+    dat3_conf.mode = GPIO_MODE_OUTPUT;
+    dat3_conf.pin_bit_mask = (1ULL << GPIO_NUM_13);  // DAT3 is GPIO13
+    dat3_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    dat3_conf.pull_up_en = GPIO_PULLUP_ENABLE;  // Enable pull-up
+    gpio_config(&dat3_conf);
+    gpio_set_level(GPIO_NUM_13, 1);  // Set HIGH for SD mode
+    vTaskDelay(pdMS_TO_TICKS(10));   // Wait for card to recognize mode
+
+    ESP_LOGI(TAG, "DAT3/CS pulled HIGH for SD mode");
+
+    // Configure mount options
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {};
     mount_config.format_if_mount_failed = format_if_failed;
     mount_config.max_files = max_files_;
     mount_config.allocation_unit_size = 16 * 1024;
 
-    // Use SDSPI host with very slow clock speed for difficult cards/breadboard
-    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-    host.max_freq_khz = 100;  // Ultra-slow 100kHz for maximum compatibility
+    // Use SDMMC host in 1-bit mode
+    sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+    host.flags = SDMMC_HOST_FLAG_1BIT;  // Use 1-bit mode
+    host.max_freq_khz = 400;  // Ultra-slow 400kHz for 10cm CLK wire signal integrity
 
-    // Configure SPI bus - exactly like official example
-    spi_bus_config_t bus_cfg = {};
-    bus_cfg.mosi_io_num = mosi_pin_;
-    bus_cfg.miso_io_num = miso_pin_;
-    bus_cfg.sclk_io_num = clk_pin_;
-    bus_cfg.quadwp_io_num = -1;
-    bus_cfg.quadhd_io_num = -1;
-    bus_cfg.max_transfer_sz = 4000;
-
-    esp_err_t ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize bus.");
-        return false;
-    }
-
-    // Configure device slot - exactly like official example
-    sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-    slot_config.gpio_cs = cs_pin_;
-    slot_config.host_id = (spi_host_device_t)host.slot;
+    // Configure slot for 1-bit SD mode - MUST use hardware SDMMC pins
+    // ESP32 SDMMC Slot 1 pins are FIXED and cannot be changed:
+    // CLK=14, CMD=15, DAT0=2, DAT1=4, DAT2=12, DAT3=13
+    sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+    slot_config.width = 1;  // 1-bit mode
+    slot_config.cd = SDMMC_SLOT_NO_CD;   // No card detect
+    slot_config.wp = SDMMC_SLOT_NO_WP;   // No write protect
+    // Note: pins are set automatically by SDMMC driver, cannot override
 
     ESP_LOGI(TAG, "Mounting filesystem");
-    ret = esp_vfs_fat_sdspi_mount(mount_point_.c_str(), &host, &slot_config, 
-                                   &mount_config, &card_);
+    esp_err_t ret = esp_vfs_fat_sdmmc_mount(mount_point_.c_str(), &host, 
+                                            &slot_config, &mount_config, &card_);
 
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {
             ESP_LOGE(TAG, "Failed to mount filesystem. "
                      "If you want the card to be formatted, set format_if_failed = true.");
         } else {
-            ESP_LOGE(TAG, "Failed to initialize the card (%s). "
-                     "Make sure SD card lines have pull-up resistors in place.", esp_err_to_name(ret));
+            ESP_LOGE(TAG, "Failed to initialize the card (%s).", esp_err_to_name(ret));
         }
-        spi_bus_free((spi_host_device_t)host.slot);
         return false;
     }
 
@@ -122,13 +116,7 @@ void SDCard::unmount() {
 
     ESP_LOGI(TAG, "Unmounting SD card");
     
-    // Get the host slot before unmounting
-    spi_host_device_t host_slot = (card_ && card_->host.slot != -1) 
-                                    ? (spi_host_device_t)card_->host.slot 
-                                    : SPI3_HOST;
-    
     esp_vfs_fat_sdcard_unmount(mount_point_.c_str(), card_);
-    spi_bus_free(host_slot);
     card_ = nullptr;
     mounted_ = false;
 }
