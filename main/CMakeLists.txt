@@ -10,6 +10,7 @@ idf_component_register(
         display
         button_driver
         sd_card
+        bmi160
     PRIV_REQUIRES
         driver
         esp_timer

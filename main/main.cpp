@@ -9,6 +9,7 @@
 #include "display.hpp"
 #include "button_driver.hpp"
 #include "sd_card.hpp"
+#include "bmi160.hpp"
 #include "sdkconfig.h"
 
 #include <dirent.h>
@@ -24,14 +25,35 @@ static const char* TAG = "Bobot";
 static Bobot::Display* display = nullptr;
 static Bobot::ButtonDriver* buttonDriver = nullptr;
 static Bobot::SDCard* sdCard = nullptr;
+static Bobot::BMI160* imu = nullptr;
 static i2c_master_bus_handle_t i2c_bus = nullptr;
 
 // Button states
 static bool button_states[9] = {false};
 
+// IMU data and interrupt flag
+static volatile bool imu_data_ready = false;
+static volatile uint32_t imu_interrupt_count = 0;
+static Bobot::BMI160::AccelData accel_data = {0.0f, 0.0f, 0.0f};
+static Bobot::BMI160::GyroData gyro_data = {0.0f, 0.0f, 0.0f};
+
 // SD card data
 static std::string text_content = "";
 static std::vector<std::string> debug_files;
+
+/**
+ * @brief IMU interrupt handler (GPIO ISR)
+ * 
+ * Sets flag only - actual I2C read happens outside ISR
+ * This is a non-interruptible interrupt handler
+ */
+static void IRAM_ATTR imu_isr_handler(void* arg) {
+  // Just set the flag - no I2C operations in ISR
+  imu_data_ready = true;
+  uint32_t count = imu_interrupt_count;
+  count++;
+  imu_interrupt_count = count;
+}
 
 /**
  * @brief Draw the UI with "meow" text and 9 button squares in 3x3 grid
@@ -54,6 +76,26 @@ void drawUI() {
     snprintf(file_info, sizeof(file_info), "Files: %d", debug_files.size());
     display->drawString(2, 40, file_info);
   }
+  
+  // Display IMU data on the left side
+  display->setFont(u8g2_font_5x7_tr);
+  char imu_buffer[32];
+  
+  // Accelerometer data (m/s²)
+  snprintf(imu_buffer, sizeof(imu_buffer), "Ax:%.1f", accel_data.x);
+  display->drawString(0, 50, imu_buffer);
+  snprintf(imu_buffer, sizeof(imu_buffer), "Ay:%.1f", accel_data.y);
+  display->drawString(0, 57, imu_buffer);
+  snprintf(imu_buffer, sizeof(imu_buffer), "Az:%.1f", accel_data.z);
+  display->drawString(0, 64, imu_buffer);
+  
+  // Gyroscope data (rad/s)
+  snprintf(imu_buffer, sizeof(imu_buffer), "Gx:%.2f", gyro_data.x);
+  display->drawString(64, 50, imu_buffer);
+  snprintf(imu_buffer, sizeof(imu_buffer), "Gy:%.2f", gyro_data.y);
+  display->drawString(64, 57, imu_buffer);
+  snprintf(imu_buffer, sizeof(imu_buffer), "Gz:%.2f", gyro_data.z);
+  display->drawString(64, 64, imu_buffer);
   
   // Draw 3x3 grid of button squares (smaller and lower)
   const int square_size = 4;
@@ -86,10 +128,53 @@ void drawUI() {
 void uiTask(void* parameter) {
   ESP_LOGI(TAG, "UI task started");
   
+  uint32_t poll_counter = 0;
+  uint32_t last_interrupt_count = 0;
+  
   while (true) {
+    bool needs_redraw = false;
+    
+    // Check if IMU data is ready (interrupt fired OR polling fallback)
+    if (imu != nullptr) {
+      bool should_read = false;
+      
+      // Check interrupt flag
+      if (imu_data_ready) {
+        imu_data_ready = false;  // Clear flag
+        should_read = true;
+      }
+      
+      // Fallback: poll every 10 cycles (500ms) if interrupts stop working
+      poll_counter++;
+      if (poll_counter >= 10) {
+        poll_counter = 0;
+        should_read = true;
+        
+        // Debug: check if interrupts are still firing
+        if (imu_interrupt_count == last_interrupt_count) {
+          ESP_LOGW(TAG, "No IMU interrupts in 500ms - using polling fallback");
+        }
+        last_interrupt_count = imu_interrupt_count;
+      }
+      
+      if (should_read) {
+        // Read IMU data (outside ISR context)
+        if (imu->readAccel(accel_data)) {
+          needs_redraw = true;
+        }
+        if (imu->readGyro(gyro_data)) {
+          needs_redraw = true;
+        }
+      }
+    }
+    
     // Read button states
     if (buttonDriver->readButtons(button_states)) {
-      // Redraw UI with updated button states
+      needs_redraw = true;
+    }
+    
+    // Redraw UI if anything changed
+    if (needs_redraw) {
       drawUI();
     }
     
@@ -136,6 +221,44 @@ extern "C" void app_main(void) {
     return;
   }
   ESP_LOGI(TAG, "Button driver initialized");
+  
+  // Initialize BMI160 IMU sensor on GPIO4 for INT1
+  imu = new Bobot::BMI160(i2c_bus, GPIO_NUM_4, 0x68);
+  if (!imu->init()) {
+    ESP_LOGE(TAG, "Failed to initialize BMI160 IMU");
+    // Continue without IMU
+    delete imu;
+    imu = nullptr;
+  } else {
+    ESP_LOGI(TAG, "BMI160 IMU initialized");
+    
+    // Configure GPIO interrupt for INT1 pin
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_POSEDGE;  // Rising edge (active high)
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pin_bit_mask = (1ULL << GPIO_NUM_4);
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    gpio_config(&io_conf);
+    
+    // Install GPIO ISR service
+    gpio_install_isr_service(0);
+    
+    // Add ISR handler for INT1 pin
+    gpio_isr_handler_add(GPIO_NUM_4, imu_isr_handler, nullptr);
+    
+    ESP_LOGI(TAG, "BMI160 interrupt configured on GPIO4");
+    
+    // Do initial sensor read to display current state (gravity)
+    if (imu->readAccel(accel_data)) {
+      ESP_LOGI(TAG, "Initial accel: X=%.2f Y=%.2f Z=%.2f m/s²", 
+               accel_data.x, accel_data.y, accel_data.z);
+    }
+    if (imu->readGyro(gyro_data)) {
+      ESP_LOGI(TAG, "Initial gyro: X=%.2f Y=%.2f Z=%.2f rad/s", 
+               gyro_data.x, gyro_data.y, gyro_data.z);
+    }
+  }
   
   // Initialize SD card - Using 1-bit SDIO mode with FIXED hardware pins
   // ESP32 SDMMC Slot 1: CLK=GPIO14, CMD=GPIO15, DAT0=GPIO2
