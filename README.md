@@ -327,6 +327,9 @@ may be added in future for Bobot:
 ##### Expression
 
 Expression - elementary unit of Bobot expressions graphic. It is directory with graphic assets of expression nd file with expression description and metadata. Expression can be set as temporally Bobot face in mode with manual expression selection.
+
+Expression strucutre:
+
 ```
 Expression
 ├── Description.ini
@@ -336,6 +339,33 @@ Expression
 │   ├──...
 │   ├── Frame_N
 ```
+
+Expression `Description.ini`:
+```ini
+; Description for Expression_Name expression
+
+[Loop]
+; Supported Loop types:
+;
+; 1. IdleBlink(default) - Display first frame for random time in range
+;                           [IdleTimeMinMS, IdleTimeMaxMS] ms and after that
+;                           run animation with AnimationFPS fps.
+;                           After that switch frame to first and repeat.
+;
+; 2. Loop - Repeat animation from first frame to last with AnimationFPS fps.
+;           IdleTimeMinMS and IdleTimeMaxMS are unnecessary and wiil be ignored
+;           if presented
+;
+; 3. Image - Display only first frame. All fields except type are unnecessary 
+;             and wiil be ignored if presented
+
+; Type field must be first
+Type = IdleBlink ; default = IdleBlink
+AnimationFPS = 20 ; default = 20
+IdleTimeMinMS = 1000 ; default = 1000
+IdleTimeMaxMS = 1000 ; default = 1000
+```
+
 ##### Library
 Library - list of expressions. Some libraries can be sourced to be used as Bobot faces for corresponding events. Library consist of file with library description, information and metadata, directory with expressions and file with behaviour and mapping(if needed) expressions in expressions directory to Bobots events. If there is no behaviour and mapping file, library cant be sourced.
 ```
@@ -348,3 +378,8 @@ Library
 │   ├──...
 │   ├── Expression_Z
 ```
+
+### Developer Tools
+
+#### Graphics Structure Generation Script
+
