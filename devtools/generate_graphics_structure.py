@@ -6,15 +6,26 @@ This script processes the graphics asset structure by:
 1. Reading the Description.ini to determine which libraries are enabled
 2. Creating library directories if they don't exist
 3. Generating Description.ini files for expressions
-4. Exporting Aseprite animations to frame sequences
+4. Exporting Aseprite animations to PNG frame sequences
+5. Converting PNG frames to u8g2-compatible binary format
+6. Cleaning up intermediate files
 """
 
 import os
 import sys
 import configparser
 import subprocess
+import struct
+import shutil
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Tuple
+
+try:
+    from PIL import Image
+except ImportError:
+    print("Warning: Pillow (PIL) not found. Installing...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "Pillow"])
+    from PIL import Image
 
 
 class GraphicsStructureGenerator:
@@ -37,7 +48,9 @@ class GraphicsStructureGenerator:
             print(f"Error: {self.description_file} not found!")
             sys.exit(1)
             
-        config = configparser.ConfigParser()
+        # Preserve case sensitivity for library names
+        config = configparser.RawConfigParser()
+        config.optionxform = str  # Preserve case
         config.read(self.description_file)
         
         if 'Libraries' not in config:
@@ -53,16 +66,15 @@ class GraphicsStructureGenerator:
     
     def create_library_directories(self) -> None:
         """Create directories for enabled libraries if they don't exist."""
+        # Ensure libraries directory exists
+        libraries_root = self.graphics_dir / "libraries"
+        libraries_root.mkdir(exist_ok=True)
+        
         for library_name in self.enabled_libraries:
-            library_path = self.graphics_dir / library_name
+            library_path = libraries_root / library_name
             if not library_path.exists():
                 library_path.mkdir(parents=True, exist_ok=True)
                 print(f"Created library directory: {library_path}")
-                
-                # Create Expressions subdirectory
-                expressions_dir = library_path / "Expressions"
-                expressions_dir.mkdir(exist_ok=True)
-                print(f"Created expressions directory: {expressions_dir}")
             else:
                 print(f"Library directory already exists: {library_path}")
     
@@ -140,24 +152,28 @@ IdleTimeMaxMS = 3000
         print("Warning: Aseprite executable not found. Frame export will be skipped.")
         return None
     
-    def export_aseprite_frames(self, aseprite_file: Path, frames_dir: Path, aseprite_cmd: str) -> None:
+    def export_aseprite_frames(self, aseprite_file: Path, frames_dir: Path, aseprite_cmd: str) -> List[Path]:
         """
-        Export Aseprite animation to frame sequence.
+        Export Aseprite animation to PNG frame sequence.
         
         Args:
             aseprite_file: Path to the .aseprite file
             frames_dir: Directory to save frames
             aseprite_cmd: Path to aseprite executable
+            
+        Returns:
+            List of exported PNG file paths
         """
         if aseprite_cmd is None:
-            return
+            return []
             
-        # Create frames directory if it doesn't exist
-        frames_dir.mkdir(exist_ok=True)
+        # Create temporary directory for PNG export
+        temp_png_dir = frames_dir / "_temp_png"
+        temp_png_dir.mkdir(exist_ok=True)
         
         # Export frames as PNG sequence
         # Frame naming: Frame_00.png, Frame_01.png, etc.
-        output_pattern = frames_dir / "Frame_{frame2}.png"
+        output_pattern = temp_png_dir / "Frame_{frame2}.png"
         
         try:
             cmd = [
@@ -176,16 +192,126 @@ IdleTimeMaxMS = 3000
             )
             
             if result.returncode == 0:
-                # Count exported frames
-                frame_files = list(frames_dir.glob("Frame_*.png"))
-                print(f"    Exported {len(frame_files)} frames from {aseprite_file.name}")
+                # Get list of exported PNG files and rename them to start from 00
+                png_files = sorted(temp_png_dir.glob("Frame_*.png"))
+                
+                # Rename files to ensure sequential numbering starting from 00
+                renamed_files = []
+                for idx, old_file in enumerate(png_files):
+                    new_name = temp_png_dir / f"Frame_{idx:02d}.png"
+                    if old_file != new_name:
+                        old_file.rename(new_name)
+                    renamed_files.append(new_name)
+                
+                print(f"    Exported {len(renamed_files)} PNG frames from {aseprite_file.name}")
+                return renamed_files
             else:
                 print(f"    Error exporting frames: {result.stderr}")
+                return []
                 
         except subprocess.TimeoutExpired:
             print(f"    Timeout while exporting {aseprite_file.name}")
+            return []
         except Exception as e:
             print(f"    Error: {e}")
+            return []
+    
+    def convert_png_to_u8g2_format(self, png_file: Path, output_file: Path) -> bool:
+        """
+        Convert PNG to u8g2-compatible monochrome binary format.
+        
+        Format:
+        - 2 bytes: width (little-endian uint16)
+        - 2 bytes: height (little-endian uint16)
+        - N bytes: monochrome bitmap data (1 bit per pixel, packed)
+        
+        Args:
+            png_file: Input PNG file path
+            output_file: Output binary file path
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Open and convert to monochrome
+            img = Image.open(png_file)
+            
+            # Convert to grayscale first, then to 1-bit monochrome
+            img = img.convert('L')  # Grayscale
+            img = img.convert('1')  # 1-bit monochrome (black & white)
+            
+            width, height = img.size
+            
+            # Create binary data
+            # u8g2 expects data in column-major order with vertical bytes
+            # Each byte represents 8 vertical pixels
+            bitmap_data = bytearray()
+            
+            # Process in vertical strips (u8g2 format)
+            for x in range(width):
+                for y_byte in range((height + 7) // 8):  # Round up to nearest byte
+                    byte_val = 0
+                    for bit in range(8):
+                        y = y_byte * 8 + bit
+                        if y < height:
+                            pixel = img.getpixel((x, y))
+                            # In PIL '1' mode: 0 = black, 255 = white
+                            # For u8g2: 1 = pixel on, 0 = pixel off
+                            if pixel == 0:  # Black pixel
+                                byte_val |= (1 << bit)
+                    bitmap_data.append(byte_val)
+            
+            # Write header + bitmap data
+            with open(output_file, 'wb') as f:
+                # Write width and height as little-endian uint16
+                f.write(struct.pack('<HH', width, height))
+                # Write bitmap data
+                f.write(bitmap_data)
+            
+            return True
+            
+        except Exception as e:
+            print(f"      Error converting {png_file.name}: {e}")
+            return False
+    
+    def process_and_convert_frames(self, png_files: List[Path], frames_dir: Path) -> int:
+        """
+        Convert PNG frames to u8g2 binary format and clean up.
+        
+        Args:
+            png_files: List of PNG file paths to convert
+            frames_dir: Directory to save final binary frames
+            
+        Returns:
+            Number of successfully converted frames
+        """
+        frames_dir.mkdir(exist_ok=True)
+        converted_count = 0
+        
+        for png_file in png_files:
+            # Determine output filename (replace .png with .bin)
+            frame_name = png_file.stem  # e.g., "Frame_00"
+            output_file = frames_dir / f"{frame_name}.bin"
+            
+            if self.convert_png_to_u8g2_format(png_file, output_file):
+                converted_count += 1
+        
+        # Clean up temporary PNG files
+        if png_files:
+            temp_dir = png_files[0].parent
+            for png_file in png_files:
+                try:
+                    png_file.unlink()
+                except Exception as e:
+                    print(f"      Warning: Could not delete {png_file.name}: {e}")
+            
+            # Remove temporary directory
+            try:
+                temp_dir.rmdir()
+            except Exception:
+                pass  # Directory might not be empty or already removed
+        
+        return converted_count
     
     def process_library(self, library_name: str, aseprite_cmd: str) -> None:
         """
@@ -195,15 +321,14 @@ IdleTimeMaxMS = 3000
             library_name: Name of the library to process
             aseprite_cmd: Path to aseprite executable (or None)
         """
-        library_path = self.graphics_dir / library_name
-        expressions_path = library_path / "Expressions"
+        library_path = self.graphics_dir / "libraries" / library_name
         
-        if not expressions_path.exists():
-            print(f"  No Expressions directory found in {library_name}")
+        if not library_path.exists():
+            print(f"  Library directory not found: {library_name}")
             return
         
-        # Iterate over all directories in Expressions
-        for item in expressions_path.iterdir():
+        # Iterate over all directories in the library (each is an expression)
+        for item in library_path.iterdir():
             if not item.is_dir():
                 continue
                 
@@ -220,11 +345,27 @@ IdleTimeMaxMS = 3000
                 print(f"    No .aseprite file found, skipping frame export")
                 continue
             
+            # Clear existing Frames directory to remove old/stale frames
+            frames_dir = item / "Frames"
+            if frames_dir.exists():
+                print(f"    Clearing old frames...")
+                shutil.rmtree(frames_dir)
+            frames_dir.mkdir(exist_ok=True)
+            
             # Process each .aseprite file
             for aseprite_file in aseprite_files:
-                frames_dir = item / "Frames"
                 print(f"    Exporting frames from {aseprite_file.name}...")
-                self.export_aseprite_frames(aseprite_file, frames_dir, aseprite_cmd)
+                
+                # Export to PNG
+                png_files = self.export_aseprite_frames(aseprite_file, frames_dir, aseprite_cmd)
+                
+                if png_files:
+                    # Convert PNG to u8g2 binary format
+                    print(f"    Converting {len(png_files)} frames to u8g2 binary format...")
+                    converted_count = self.process_and_convert_frames(png_files, frames_dir)
+                    print(f"    ✓ Converted {converted_count} frames to binary format")
+                else:
+                    print(f"    No frames exported from {aseprite_file.name}")
     
     def run(self) -> None:
         """Main execution method."""

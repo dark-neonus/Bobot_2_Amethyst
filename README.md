@@ -334,11 +334,14 @@ Expression strucutre:
 Expression
 ├── Description.ini
 ├── Frames
-│   ├── Frame_00
-│   ├── Frame_01
-│   ├──...
-│   ├── Frame_N
+│   ├── Frame_00.bin
+│   ├── Frame_01.bin
+│   ├──...
+│   ├── Frame_N.bin
 ```
+
+Frame binary format:
+Each frame file is binary file with monochrome bitmap data optimized for u8g2 library. Format structure: first 2 bytes are frame width as little-endian uint16, next 2 bytes are frame height as little-endian uint16, remaining bytes are monochrome bitmap data where each byte represents 8 vertical pixels organized in column-major order. During runtime frames are read from SD card and passed directly to u8g2 display functions.
 
 Expression `Description.ini`:
 ```ini
@@ -382,14 +385,10 @@ Library
 ### Developer Tools
 
 #### Graphics Structure Generation Script
-Script is placed in `devtools` directory under project root.
-Script consist of two parts: main logic python script and shell script to wrap python environment handling and navigation to graphics directory.
-Navigate to assets/graphics if not already there.
-Read `Description.ini` section `[Libraries]` all properties,
-which are graphical libraries. If library property equals `true`
-create directory for it, if it isnt created yet. If `false` jsut skip.
-Iterate over all libraries marked true. In each library iterate over all 
-directories(which are expressions) and if not presented generate 
-`Description.ini`.
-Inside Expression directory there will be `.aseprite` file with animation. If there is no aseprite file, it isnt expression, just skip it.
-Use `aseprite` to export animation as sequence of frames of just binary format for fastest file-to-c-array conversion. Frames should be stored in expressions directory in `Frames` subdirectory and should be named `Frame_FrameIndexTwoDigits`.
+Script is placed in `devtools` directory under project root. It consists of two files: `generate_graphics_structure.py` with main logic and `generate_graphics.sh` shell wrapper for convenient execution. Script can be run with `./devtools/generate_graphics.sh` from project root.
+
+Script reads `assets/graphics/Description.ini` and processes all libraries marked as `true`. For each enabled library it creates directory structure in `assets/graphics/libraries/LibraryName` if not exists. Then it iterates over all directories inside library which are expressions. For each expression it generates default `Description.ini` if not present.
+
+For expressions containing `.aseprite` or `.ase` files script uses aseprite in batch mode to export animation frames as PNG sequence into temporary directory. Then it converts each PNG frame to u8g2-compatible binary format and saves as `Frame_XX.bin` files in expression `Frames` subdirectory. After conversion all temporary PNG files are deleted. If `Frames` directory exists from previous run it is completely cleared before generating new frames to avoid stale data.
+
+Aseprite is built from source during Docker container setup and available at `/usr/local/bin/aseprite`. Script automatically finds aseprite executable and falls back gracefully if not available.
