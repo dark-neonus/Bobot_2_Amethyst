@@ -382,4 +382,14 @@ Library
 ### Developer Tools
 
 #### Graphics Structure Generation Script
-
+Script is placed in `devtools` directory under project root.
+Script consist of two parts: main logic python script and shell script to wrap python environment handling and navigation to graphics directory.
+Navigate to assets/graphics if not already there.
+Read `Description.ini` section `[Libraries]` all properties,
+which are graphical libraries. If library property equals `true`
+create directory for it, if it isnt created yet. If `false` jsut skip.
+Iterate over all libraries marked true. In each library iterate over all 
+directories(which are expressions) and if not presented generate 
+`Description.ini`.
+Inside Expression directory there will be `.aseprite` file with animation. If there is no aseprite file, it isnt expression, just skip it.
+Use `aseprite` to export animation as sequence of frames of just binary format for fastest file-to-c-array conversion. Frames should be stored in expressions directory in `Frames` subdirectory and should be named `Frame_FrameIndexTwoDigits`.
