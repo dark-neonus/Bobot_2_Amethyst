@@ -304,3 +304,47 @@ Software:
 #### Links
 
 [Application Note AN4600 - MPR121 Proximity Sensing](https://www.nxp.com/docs/en/application-note/AN4600.pdf)
+
+
+## Software
+
+### Assets
+
+#### Description
+
+There will be 4 main face assets libraries where each of them can be set as source library, single library with faces not
+connected to any library and few non-main libraries which
+may be added in future for Bobot:
+
+1. Classic - face library of first Bobot with possible extensions for new features
+2. Amethyst - face library for current model which will stick to classic expressions but with fresh look
+3. Cutie - face library consisting of cute assets with cat-like features and big eyes
+4. Doodles - face library consisting of weirdly paint assets representing scratch style
+4. Other - library with face expressions not connected to any full library, cannot be set as source library
+
+#### Structure
+
+##### Expression
+
+Expression - elementary unit of Bobot expressions graphic. It is directory with graphic assets of expression nd file with expression description and metadata. Expression can be set as temporally Bobot face in mode with manual expression selection.
+```
+Expression
+├── Description.ini
+├── Frames
+│   ├── Frame_00
+│   ├── Frame_01
+│   ├──...
+│   ├── Frame_N
+```
+##### Library
+Library - list of expressions. Some libraries can be sourced to be used as Bobot faces for corresponding events. Library consist of file with library description, information and metadata, directory with expressions and file with behaviour and mapping(if needed) expressions in expressions directory to Bobots events. If there is no behaviour and mapping file, library cant be sourced.
+```
+Library
+├── Description.ini
+├── Behaviour.csv
+├── Expressions
+│   ├── Expression_A
+│   ├── Expression_B
+│   ├──...
+│   ├── Expression_Z
+```
