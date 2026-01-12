@@ -10,6 +10,7 @@
 #include "button_driver.hpp"
 #include "sd_card.hpp"
 #include "bmi160.hpp"
+#include "asset_uploader.hpp"
 #include "sdkconfig.h"
 
 #include <dirent.h>
@@ -26,7 +27,45 @@ static Bobot::Display* display = nullptr;
 static Bobot::ButtonDriver* buttonDriver = nullptr;
 static Bobot::SDCard* sdCard = nullptr;
 static Bobot::BMI160* imu = nullptr;
+static Bobot::AssetUploader* assetUploader = nullptr;
 static i2c_master_bus_handle_t i2c_bus = nullptr;
+
+// Upload mode flag
+static volatile bool upload_mode_active = false;
+
+// Recursive file counter
+int countFilesRecursive(const char* path) {
+  DIR* dir = opendir(path);
+  if (!dir) {
+    return 0;
+  }
+  
+  int count = 0;
+  struct dirent* entry;
+  
+  while ((entry = readdir(dir)) != nullptr) {
+    // Skip . and ..
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+      continue;
+    }
+    
+    char full_path[512];
+    snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+    
+    if (entry->d_type == DT_DIR) {
+      // Count directory itself
+      count++;
+      // Recursively count contents
+      count += countFilesRecursive(full_path);
+    } else {
+      // Count file
+      count++;
+    }
+  }
+  
+  closedir(dir);
+  return count;
+}
 
 // Button states
 static bool button_states[9] = {false};
@@ -40,6 +79,8 @@ static Bobot::BMI160::GyroData gyro_data = {0.0f, 0.0f, 0.0f};
 // SD card data
 static std::string text_content = "";
 static std::vector<std::string> debug_files;
+static int cached_file_count = 0;
+static uint32_t last_count_time = 0;
 
 /**
  * @brief IMU interrupt handler (GPIO ISR)
@@ -70,10 +111,10 @@ void drawUI() {
     display->drawString(2, 30, text_content.c_str());
   }
   
-  // Display file count
-  if (!debug_files.empty()) {
+  // Display total file count recursively (cached to avoid slowdown)
+  if (sdCard != nullptr && cached_file_count > 0) {
     char file_info[32];
-    snprintf(file_info, sizeof(file_info), "Files: %d", debug_files.size());
+    snprintf(file_info, sizeof(file_info), "Total: %d files", cached_file_count);
     display->drawString(2, 40, file_info);
   }
   
@@ -130,8 +171,88 @@ void uiTask(void* parameter) {
   
   uint32_t poll_counter = 0;
   uint32_t last_interrupt_count = 0;
+  uint32_t button_hold_counter = 0;
   
   while (true) {
+    // Check if upload mode was activated
+    if (upload_mode_active) {
+      ESP_LOGI(TAG, "Upload mode active, suspending UI task");
+      
+      // Display upload mode message
+      display->clear();
+      display->setFont(u8g2_font_6x10_tr);
+      display->drawString(2, 20, "Upload Mode");
+      display->drawString(2, 30, "Connect to:");
+      display->drawString(2, 40, "Bobot_Upload");
+      
+      if (assetUploader && assetUploader->isActive()) {
+        display->drawString(2, 50, "Ready!");
+      }
+      
+      display->drawString(2, 60, "Hold Back to exit");
+      
+      display->update();
+      
+      // Wait for upload mode to finish (with timeout)
+      uint32_t upload_timeout_counter = 0;
+      const uint32_t UPLOAD_TIMEOUT_MS = 300000; // 5 minutes
+      
+      while (upload_mode_active && upload_timeout_counter < UPLOAD_TIMEOUT_MS) {
+        vTaskDelay(pdMS_TO_TICKS(500));
+        upload_timeout_counter += 500;
+        
+        // Check for Back button to manually exit
+        bool exit_button_states[9] = {false};
+        if (buttonDriver->readButtons(exit_button_states) && exit_button_states[0]) {
+          ESP_LOGI(TAG, "Manual exit via Back button");
+          upload_mode_active = false;
+          break;
+        }
+        
+        // Check if uploader is no longer active (completed)
+        if (assetUploader && !assetUploader->isActive()) {
+          ESP_LOGI(TAG, "Upload completed, exiting upload mode");
+          upload_mode_active = false;
+          
+          // Count and display total files
+          int file_count = countFilesRecursive("/sdcard");
+          ESP_LOGI(TAG, "Total files on SD card: %d", file_count);
+          
+          display->clear();
+          display->setFont(u8g2_font_6x10_tr);
+          display->drawString(2, 20, "Upload Complete!");
+          char count_str[64];
+          snprintf(count_str, sizeof(count_str), "Total: %d files", file_count);
+          display->drawString(2, 35, count_str);
+          display->drawString(2, 50, "Press Back to");
+          display->drawString(2, 60, "continue");
+          display->update();
+          
+          // Wait for Back button press
+          bool confirm_button_states[9] = {false};
+          while (true) {
+            vTaskDelay(pdMS_TO_TICKS(100));
+            if (buttonDriver->readButtons(confirm_button_states) && confirm_button_states[0]) {
+              break;
+            }
+          }
+          
+          break;
+        }
+      }
+      
+      if (upload_timeout_counter >= UPLOAD_TIMEOUT_MS) {
+        ESP_LOGW(TAG, "Upload mode timed out after 5 minutes");
+        upload_mode_active = false;
+        if (assetUploader) {
+          assetUploader->stop();
+        }
+      }
+      
+      ESP_LOGI(TAG, "Upload mode finished, resuming UI");
+      continue;
+    }
+    
     bool needs_redraw = false;
     
     // Check if IMU data is ready (interrupt fired OR polling fallback)
@@ -171,6 +292,41 @@ void uiTask(void* parameter) {
     // Read button states
     if (buttonDriver->readButtons(button_states)) {
       needs_redraw = true;
+    }
+    
+    // Update file count every 5 seconds
+    uint32_t current_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    if (sdCard != nullptr && (current_time - last_count_time > 5000)) {
+      cached_file_count = countFilesRecursive("/sdcard");
+      last_count_time = current_time;
+      needs_redraw = true;
+    }
+    
+    // Check for button combination to activate upload mode
+    // Hold Back + Settings + Debug buttons for 2 seconds
+    bool combo_held = button_states[0] && button_states[6] && button_states[8];  // Back, Settings, Debug
+    
+    if (combo_held) {
+      button_hold_counter++;
+      ESP_LOGI(TAG, "Button combo held: %d/40", button_hold_counter);
+      if (button_hold_counter >= 40) {  // 40 * 50ms = 2 seconds
+        ESP_LOGI(TAG, "Upload mode button combination detected!");
+        upload_mode_active = true;
+        button_hold_counter = 0;
+        
+        // Start asset uploader
+        if (assetUploader) {
+          if (assetUploader->start()) {
+            ESP_LOGI(TAG, "Asset uploader started successfully");
+          } else {
+            ESP_LOGE(TAG, "Failed to start asset uploader");
+            upload_mode_active = false;
+          }
+        }
+        continue;
+      }
+    } else {
+      button_hold_counter = 0;
     }
     
     // Redraw UI if anything changed
@@ -296,6 +452,10 @@ extern "C" void app_main(void) {
       ESP_LOGW(TAG, "Could not open debug directory");
       text_content = "No /debug";
     }
+    
+    // Initialize asset uploader
+    assetUploader = new Bobot::AssetUploader(sdCard);
+    ESP_LOGI(TAG, "Asset uploader initialized");
   } else {
     ESP_LOGW(TAG, "SD card not available - continuing without it");
     text_content = "No SD card";

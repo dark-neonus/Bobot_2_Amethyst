@@ -392,3 +392,43 @@ Script reads `assets/graphics/Description.ini` and processes all libraries marke
 For expressions containing `.aseprite` or `.ase` files script uses aseprite in batch mode to export animation frames as PNG sequence into temporary directory. Then it converts each PNG frame to u8g2-compatible binary format and saves as `Frame_XX.bin` files in expression `Frames` subdirectory. After conversion all temporary PNG files are deleted. If `Frames` directory exists from previous run it is completely cleared before generating new frames to avoid stale data.
 
 Aseprite is built from source during Docker container setup and available at `/usr/local/bin/aseprite`. Script automatically finds aseprite executable and falls back gracefully if not available.
+
+#### SD Card Assets Update Script
+##### ESP32 Side
+ESP32 can enter asset upload mode when requested, hosting a simple HTTP server on WiFi. In main microcontroller loop it checks for button combination or serial command to activate upload mode. When activated, ESP32:
+- Stops regular operating mode
+- Starts HTTP server on port 8080
+- Waits for upload requests
+
+Upload process:
+1. HTTP POST to `/start` - ESP32 deletes entire `/assets` directory (preserving other files/directories)
+2. HTTP POST to `/file` - Upload individual files with path in request
+3. HTTP POST to `/complete` - Finalize upload and return to normal mode
+
+The `/assets` directory is completely cleared at start of upload, but other directories and files on SD card remain untouched. Upload mode cannot be interrupted except by system-level events.
+
+##### Host (PC) Side
+Host PC connects to ESP32 via WiFi to upload assets. In `devtools` directory there are `flash_micro_sd.sh` and `flash_micro_sd.py` scripts:
+
+**Shell script (`flash_micro_sd.sh`)**:
+- Manages directory navigation
+- Configures Python environment
+- Provides simple interface: `./devtools/flash_micro_sd.sh`
+
+**Python script (`flash_micro_sd.py`)**:
+- Discovers ESP32 on network (mDNS or manual IP)
+- Sends `/start` command and waits for confirmation
+- Uploads entire `assets` directory via HTTP POST (excludes .aseprite files)
+- Sends `/complete` command when done
+- Displays progress and handles errors
+
+Usage:
+```bash
+# From project root
+./devtools/flash_micro_sd.sh
+
+# Or with custom IP
+./devtools/flash_micro_sd.sh --ip 192.168.1.100
+```
+
+The upload is reliable (checksums verified), fast (WiFi bandwidth), and doesn't interfere with USB console/debugging.

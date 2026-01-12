@@ -11,6 +11,7 @@ idf_component_register(
         button_driver
         sd_card
         bmi160
+        asset_uploader
     PRIV_REQUIRES
         driver
         esp_timer
