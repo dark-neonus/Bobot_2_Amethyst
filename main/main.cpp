@@ -13,6 +13,11 @@
 #include "asset_uploader.hpp"
 #include "sdkconfig.h"
 
+// Graphics engine
+#include "vec2i.hpp"
+#include "frame.hpp"
+#include "expression.hpp"
+
 #include <dirent.h>
 #include <vector>
 #include <string>
@@ -339,6 +344,89 @@ void uiTask(void* parameter) {
   }
 }
 
+/**
+ * @brief Graphics test task - displays Normal_Positive expression
+ * 
+ * Tests the graphics engine by loading and displaying the
+ * Amethyst/Normal_Positive expression with animation
+ */
+void graphicsTestTask(void* parameter) {
+  ESP_LOGI(TAG, "Graphics test task started");
+  
+  if (!display || !sdCard) {
+    ESP_LOGE(TAG, "Display or SD card not available for graphics test");
+    vTaskDelete(NULL);
+    return;
+  }
+  
+  // Load Normal_Positive expression
+  Bobot::Graphics::Expression expression;
+  
+  // Build path using SD card mount point
+  char expressionPath[256];
+  snprintf(expressionPath, sizeof(expressionPath), 
+           "%s/assets/graphics/libraries/Amethyst/Normal_Positive",
+           sdCard->getMountPoint());
+  if (!expression.loadFromDirectory(expressionPath)) {
+    ESP_LOGE(TAG, "Failed to load expression from: %s", expressionPath);
+    
+    // Display error message
+    display->clear();
+    display->setFont(u8g2_font_10x20_tr);
+    display->drawString(2, 20, "Graphics Test");
+    display->drawString(2, 30, "Error: Failed");
+    display->drawString(2, 40, "to load");
+    display->drawString(2, 50, "expression");
+    display->update();
+    
+    vTaskDelete(NULL);
+    return;
+  }
+  
+  ESP_LOGI(TAG, "Expression loaded: %s", expression.toString().c_str());
+  
+  // Display success message
+  display->clear();
+  display->setFont(u8g2_font_10x20_tr);
+  display->drawString(2, 10, "Graphics Test");
+  display->drawString(2, 20, expression.toString().c_str());
+  display->update();
+  
+  vTaskDelay(pdMS_TO_TICKS(2000));  // Show info for 2 seconds
+  
+  // Animation loop
+  uint32_t lastUpdateTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
+  
+  while (true) {
+    uint32_t currentTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    uint32_t deltaTime = currentTime - lastUpdateTime;
+    lastUpdateTime = currentTime;
+    
+    // Update expression animation
+    expression.update(deltaTime);
+    
+    // Clear display and draw expression centered
+    display->clear();
+    
+    // Center the expression on 128x64 display
+    // Assuming expression frames are roughly 128x64, adjust offset as needed
+    Bobot::Graphics::Vec2i offset(0, 0);
+    expression.draw(display->getU8g2Handle(), offset);
+    
+    // Display FPS info at bottom
+    display->setFont(u8g2_font_9x15_tr);
+    char info[32];
+    snprintf(info, sizeof(info), "F:%zu/%zu", 
+             expression.getFrameIndex() + 1, expression.getFrameCount());
+    display->drawString(0, 63, info);
+    
+    display->update();
+    
+    // Run at ~60 FPS for smooth animation
+    vTaskDelay(pdMS_TO_TICKS(16));
+  }
+}
+
 extern "C" void app_main(void) {
   ESP_LOGI(TAG, "Bobot starting up...");
   
@@ -464,8 +552,17 @@ extern "C" void app_main(void) {
   // Draw initial UI
   drawUI();
   
+  // Graphics test mode - comment out to use normal UI
+  #define GRAPHICS_TEST_MODE 1
+  
+  #ifdef GRAPHICS_TEST_MODE
+  // Create graphics test task
+  xTaskCreate(graphicsTestTask, "graphics_test", 8192, NULL, 5, NULL);
+  ESP_LOGI(TAG, "Graphics test mode enabled");
+  #else
   // Create UI update task
   xTaskCreate(uiTask, "ui_task", 4096, NULL, 5, NULL);
+  #endif
   
   ESP_LOGI(TAG, "Bobot initialized successfully!");
 }

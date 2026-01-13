@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS 
+        "src/vec2i.cpp"
+        "src/frame.cpp"
+        "src/expression.cpp"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES
+        u8g2
+        fatfs
+        esp_timer
+)
