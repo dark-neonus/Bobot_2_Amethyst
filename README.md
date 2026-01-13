@@ -312,7 +312,7 @@ Software:
 
 #### Description
 
-There will be 4 main face assets libraries where each of them can be set as source library, single library with faces not
+There will be 4 main face assets libraries(profiles) where each of them can be set as source library, single library with faces not
 connected to any library and few non-main libraries which
 may be added in future for Bobot:
 
@@ -394,6 +394,8 @@ For expressions containing `.aseprite` or `.ase` files script uses aseprite in b
 Aseprite is built from source during Docker container setup and available at `/usr/local/bin/aseprite`. Script automatically finds aseprite executable and falls back gracefully if not available.
 
 #### SD Card Assets Update Script
+**WARNING: Currently this feature is broken and dont work properly**
+
 ##### ESP32 Side
 ESP32 can enter asset upload mode when requested, hosting a simple HTTP server on WiFi. In main microcontroller loop it checks for button combination or serial command to activate upload mode. When activated, ESP32:
 - Stops regular operating mode
@@ -432,3 +434,35 @@ Usage:
 ```
 
 The upload is reliable (checksums verified), fast (WiFi bandwidth), and doesn't interfere with USB console/debugging.
+
+### Graphic Engine
+
+#### Position class Vec2i
+
+Class which will hold two integer values x and y and whcih will be used for working with position values.
+This class will have implementation of basic operaions: addition, substraction, multiplicating, their with assignment analogues(e.g. plus equal) and negative sign.
+Also it will have functions which will return string that represents vector data.
+This class will be used to hold values like positions, offset, speed, etc.
+
+#### Frame class
+
+Simple class which will hold only bitmap value of frame in format which will be place-and-go for u8g2 function to draw bitmap on screen and frame size.
+Class will have function to build object from raw file data, received from storage through DMA.
+
+#### Expression class
+
+Class which will hold sequence of frames, current frame index, fps and data about correct playback way of animation.
+This class will have functions to draw current frame on given display with given offset, increment frame index, set frame index, update function which will handle correct index incrementation depended on animation loop type.
+Also there will be function to create animation object(which will do subcalls of constructing frames from files) from given directory
+
+#### Future functional
+For now this code is just to test code on development setup to understand that prom not in code, when test will be runned on manufactured pcb's. They wont be implemented right now for time saving and simplisity.
+Future functional may include, but not limited to:
+
+1) Expression Library class which will handle mapping events/states to storage directories and will handle dynamic load of expression on event/state switch(to not hold full expressions library in memory). Also this class can handle graphic profiles switch.
+
+2) Upgrading Expression class functions to work correct in energy efficient code, including handling fps using timer interrupts, to set esp32 to sleep mode for as long as possible.
+
+3) Profile class which will be placeholder for data about each library possibilities, storage path and names.
+
+4) Classes for text, side menu, burger menu, navigation system visualizations, regular bitmaps drawings, and possibly more.
