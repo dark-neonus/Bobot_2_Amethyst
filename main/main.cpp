@@ -345,85 +345,170 @@ void uiTask(void* parameter) {
 }
 
 /**
- * @brief Graphics test task - displays Normal_Positive expression
+ * @brief UI mode switcher task - cycles between old UI and all expressions
  * 
- * Tests the graphics engine by loading and displaying the
- * Amethyst/Normal_Positive expression with animation
+ * Cycles through: Old UI -> Expression 1 -> Expression 2 -> ... -> Old UI
+ * Switch triggered by holding UI button for 2 seconds
  */
 void graphicsTestTask(void* parameter) {
-  ESP_LOGI(TAG, "Graphics test task started");
+  ESP_LOGI(TAG, "UI mode switcher task started");
   
-  if (!display || !sdCard) {
-    ESP_LOGE(TAG, "Display or SD card not available for graphics test");
+  if (!display || !sdCard || !buttonDriver) {
+    ESP_LOGE(TAG, "Display, SD card, or button driver not available");
     vTaskDelete(NULL);
     return;
   }
   
-  // Load Normal_Positive expression
-  Bobot::Graphics::Expression expression;
-  
-  // Build path using SD card mount point
-  char expressionPath[256];
-  snprintf(expressionPath, sizeof(expressionPath), 
-           "%s/assets/graphics/libraries/Amethyst/Normal_Positive",
+  // Scan Amethyst library for all expressions
+  std::vector<std::string> expressionNames;
+  char amethystPath[256];
+  snprintf(amethystPath, sizeof(amethystPath), 
+           "%s/assets/graphics/libraries/Amethyst",
            sdCard->getMountPoint());
-  if (!expression.loadFromDirectory(expressionPath)) {
-    ESP_LOGE(TAG, "Failed to load expression from: %s", expressionPath);
-    
-    // Display error message
-    display->clear();
-    display->setFont(u8g2_font_10x20_tr);
-    display->drawString(2, 20, "Graphics Test");
-    display->drawString(2, 30, "Error: Failed");
-    display->drawString(2, 40, "to load");
-    display->drawString(2, 50, "expression");
-    display->update();
-    
+  
+  DIR* dir = opendir(amethystPath);
+  if (dir != nullptr) {
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+      // Skip . and ..
+      if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+        continue;
+      }
+      
+      // Only add directories (expressions)
+      if (entry->d_type == DT_DIR) {
+        expressionNames.push_back(entry->d_name);
+        ESP_LOGI(TAG, "Found expression: %s", entry->d_name);
+      }
+    }
+    closedir(dir);
+  }
+  
+  if (expressionNames.empty()) {
+    ESP_LOGE(TAG, "No expressions found in Amethyst library");
     vTaskDelete(NULL);
     return;
   }
   
-  ESP_LOGI(TAG, "Expression loaded: %s", expression.toString().c_str());
+  ESP_LOGI(TAG, "Found %zu expressions in Amethyst library", expressionNames.size());
   
-  // Display success message
-  display->clear();
-  display->setFont(u8g2_font_10x20_tr);
-  display->drawString(2, 10, "Graphics Test");
-  display->drawString(2, 20, expression.toString().c_str());
-  display->update();
+  // UI modes: -1 = old UI, 0+ = expression index
+  int currentMode = -1;  // Start with old UI
+  std::unique_ptr<Bobot::Graphics::Expression> currentExpression;
+  bool expressionLoaded = false;
   
-  vTaskDelay(pdMS_TO_TICKS(2000));  // Show info for 2 seconds
-  
-  // Animation loop
   uint32_t lastUpdateTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
+  uint32_t uiButtonHoldTime = 0;
+  bool uiButtonWasPressed = false;
   
+  // Main loop
   while (true) {
     uint32_t currentTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
     uint32_t deltaTime = currentTime - lastUpdateTime;
     lastUpdateTime = currentTime;
     
-    // Update expression animation
-    expression.update(deltaTime);
+    // Check UI button state
+    bool uiButtonPressed = buttonDriver->isButtonPressed(Bobot::Button::UI);
     
-    // Clear display and draw expression centered
-    display->clear();
+    // Detect UI button hold for 2 seconds
+    if (uiButtonPressed && !uiButtonWasPressed) {
+      // Button just pressed
+      uiButtonHoldTime = 0;
+      uiButtonWasPressed = true;
+    } else if (uiButtonPressed && uiButtonWasPressed) {
+      // Button being held
+      uiButtonHoldTime += deltaTime;
+      
+      if (uiButtonHoldTime >= 2000) {
+        // Held for 2 seconds - switch mode
+        currentMode++;
+        
+        // Cycle: -1 (old UI) -> 0 -> 1 -> ... -> (n-1) -> -1
+        if (currentMode >= (int)expressionNames.size()) {
+          currentMode = -1;  // Back to old UI
+        }
+        
+        ESP_LOGI(TAG, "Switching to mode %d", currentMode);
+        
+        // Load expression if needed
+        if (currentMode >= 0) {
+          char expressionPath[256];
+          snprintf(expressionPath, sizeof(expressionPath), 
+                   "%s/assets/graphics/libraries/Amethyst/%s",
+                   sdCard->getMountPoint(),
+                   expressionNames[currentMode].c_str());
+          
+          currentExpression = std::make_unique<Bobot::Graphics::Expression>();
+          if (currentExpression->loadFromDirectory(expressionPath)) {
+            expressionLoaded = true;
+            ESP_LOGI(TAG, "Loaded expression: %s", expressionNames[currentMode].c_str());
+          } else {
+            ESP_LOGE(TAG, "Failed to load expression: %s", expressionNames[currentMode].c_str());
+            expressionLoaded = false;
+          }
+        } else {
+          expressionLoaded = false;
+          currentExpression.reset();
+        }
+        
+        // Wait for button release
+        while (buttonDriver->isButtonPressed(Bobot::Button::UI)) {
+          vTaskDelay(pdMS_TO_TICKS(50));
+        }
+        uiButtonHoldTime = 0;
+        uiButtonWasPressed = false;
+      }
+    } else if (!uiButtonPressed && uiButtonWasPressed) {
+      // Button released before 2 seconds
+      uiButtonHoldTime = 0;
+      uiButtonWasPressed = false;
+    }
     
-    // Center the expression on 128x64 display
-    // Assuming expression frames are roughly 128x64, adjust offset as needed
-    Bobot::Graphics::Vec2i offset(0, 0);
-    expression.draw(display->getU8g2Handle(), offset);
-    
-    // Display FPS info at bottom
-    display->setFont(u8g2_font_9x15_tr);
-    char info[32];
-    snprintf(info, sizeof(info), "F:%zu/%zu", 
-             expression.getFrameIndex() + 1, expression.getFrameCount());
-    display->drawString(0, 63, info);
-    
-    display->update();
-    
-    // Run at ~60 FPS for smooth animation
-    vTaskDelay(pdMS_TO_TICKS(16));
+    // Render current mode
+    if (currentMode == -1) {
+      // Show old UI
+      // Read button states for UI
+      buttonDriver->readButtons(button_states);
+      
+      // Check IMU if available
+      if (imu != nullptr && imu_data_ready) {
+        imu_data_ready = false;
+        imu->readAccel(accel_data);
+        imu->readGyro(gyro_data);
+      }
+      
+      drawUI();
+      vTaskDelay(pdMS_TO_TICKS(50));  // 20 Hz for UI
+    } else {
+      // Show expression animation
+      if (expressionLoaded && currentExpression) {
+        currentExpression->update(deltaTime);
+        
+        display->clear();
+        Bobot::Graphics::Vec2i offset(0, 0);
+        currentExpression->draw(display->getU8g2Handle(), offset);
+        
+        // Display expression info at bottom
+        display->setFont(u8g2_font_5x7_tr);
+        char info[32];
+        snprintf(info, sizeof(info), "%s F:%zu/%zu", 
+                 expressionNames[currentMode].c_str(),
+                 currentExpression->getFrameIndex() + 1,
+                 currentExpression->getFrameCount());
+        display->drawString(0, 63, info);
+        
+        display->update();
+        vTaskDelay(pdMS_TO_TICKS(16));  // 60 FPS for animation
+      } else {
+        // Error loading expression
+        display->clear();
+        display->setFont(u8g2_font_6x10_tr);
+        display->drawString(2, 20, "Error loading");
+        display->drawString(2, 30, expressionNames[currentMode].c_str());
+        display->update();
+        vTaskDelay(pdMS_TO_TICKS(100));
+      }
+    }
   }
 }
 
