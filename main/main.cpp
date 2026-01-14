@@ -4,6 +4,7 @@
 #include <driver/i2c_master.h>
 #include <stdio.h>
 #include <string.h>
+#include <cmath>
 #include <u8g2.h>
 
 #include "display.hpp"
@@ -401,11 +402,46 @@ void graphicsTestTask(void* parameter) {
   uint32_t uiButtonHoldTime = 0;
   bool uiButtonWasPressed = false;
   
+  // Polling fallback for IMU
+  uint32_t poll_counter = 0;
+  uint32_t last_interrupt_count = 0;
+  
   // Main loop
   while (true) {
     uint32_t currentTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
     uint32_t deltaTime = currentTime - lastUpdateTime;
     lastUpdateTime = currentTime;
+    
+    // Read IMU data continuously if available
+    if (imu != nullptr) {
+      bool should_read = false;
+      
+      // Check interrupt flag
+      if (imu_data_ready) {
+        imu_data_ready = false;
+        should_read = true;
+      }
+      
+      // Fallback: poll every 10 cycles (~500ms at 50Hz) if interrupts stop working
+      poll_counter++;
+      if (poll_counter >= 10) {
+        poll_counter = 0;
+        should_read = true;
+        
+        // Debug: check if interrupts are still firing
+        if (imu_interrupt_count == last_interrupt_count) {
+          ESP_LOGW(TAG, "No IMU interrupts - polling. Accel: %.2f,%.2f,%.2f",
+                   accel_data.x, accel_data.y, accel_data.z);
+        }
+        last_interrupt_count = imu_interrupt_count;
+      }
+      
+      if (should_read) {
+        imu->readAccel(accel_data);
+        imu->readGyro(gyro_data);
+      }
+    }
+    // If IMU not available, accel_data stays at zeros (initialized at startup)
     
     // Check UI button state
     bool uiButtonPressed = buttonDriver->isButtonPressed(Bobot::Button::UI);
@@ -470,13 +506,6 @@ void graphicsTestTask(void* parameter) {
       // Read button states for UI
       buttonDriver->readButtons(button_states);
       
-      // Check IMU if available
-      if (imu != nullptr && imu_data_ready) {
-        imu_data_ready = false;
-        imu->readAccel(accel_data);
-        imu->readGyro(gyro_data);
-      }
-      
       drawUI();
       vTaskDelay(pdMS_TO_TICKS(50));  // 20 Hz for UI
     } else {
@@ -485,7 +514,28 @@ void graphicsTestTask(void* parameter) {
         currentExpression->update(deltaTime);
         
         display->clear();
-        Bobot::Graphics::Vec2i offset(0, 0);
+        
+        // Calculate offset based on accelerometer (robot tilt)
+        // Accel X/Y show tilt direction - shift animation opposite to tilt
+        // Limit shift to ±10 pixels, scale by ~2 pixels per m/s²
+        int offsetX = (int)(-accel_data.y * 2.0f);
+        int offsetY = (int)(accel_data.x * 2.0f);
+        
+        // Clamp to reasonable range
+        if (offsetX > 10) offsetX = 10;
+        if (offsetX < -10) offsetX = -10;
+        if (offsetY > 10) offsetY = 10;
+        if (offsetY < -10) offsetY = -10;
+        
+        // Log offset every 30 frames for debugging
+        static int frame_count = 0;
+        if (++frame_count >= 30) {
+          frame_count = 0;
+          ESP_LOGI(TAG, "Offset: (%d,%d) from Accel: (%.2f,%.2f,%.2f)",
+                   offsetX, offsetY, accel_data.x, accel_data.y, accel_data.z);
+        }
+        
+        Bobot::Graphics::Vec2i offset(offsetX, offsetY);
         currentExpression->draw(display->getU8g2Handle(), offset);
         
         // Display expression info at bottom
@@ -551,15 +601,52 @@ extern "C" void app_main(void) {
   }
   ESP_LOGI(TAG, "Button driver initialized");
   
+  // Scan I2C bus to see what devices are present
+  ESP_LOGI(TAG, "Scanning I2C bus...");
+  bool bmi160_found = false;
+  for (uint8_t addr = 0x08; addr < 0x78; addr++) {
+    i2c_device_config_t dev_cfg = {
+      .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+      .device_address = addr,
+      .scl_speed_hz = 400000,
+      .scl_wait_us = 0,
+      .flags = {},
+    };
+    i2c_master_dev_handle_t temp_handle;
+    if (i2c_master_bus_add_device(i2c_bus, &dev_cfg, &temp_handle) == ESP_OK) {
+      // Try a quick probe (transmit 0 bytes)
+      if (i2c_master_transmit(temp_handle, nullptr, 0, 100) == ESP_OK) {
+        ESP_LOGI(TAG, "  Device at 0x%02X", addr);
+        if (addr == 0x68 || addr == 0x69) {
+          bmi160_found = true;
+        }
+      }
+      i2c_master_bus_rm_device(temp_handle);
+    }
+  }
+  
+  if (!bmi160_found) {
+    ESP_LOGW(TAG, "BMI160 not found on I2C bus - will use simulated data for testing");
+  }
+  
   // Initialize BMI160 IMU sensor on GPIO4 for INT1
+  // Try both possible I2C addresses (0x68 if SDO=GND, 0x69 if SDO=VDD)
+  ESP_LOGI(TAG, "Attempting BMI160 initialization...");
   imu = new Bobot::BMI160(i2c_bus, GPIO_NUM_4, 0x68);
   if (!imu->init()) {
-    ESP_LOGE(TAG, "Failed to initialize BMI160 IMU");
-    // Continue without IMU
+    ESP_LOGW(TAG, "BMI160 init failed at 0x68, trying 0x69...");
     delete imu;
-    imu = nullptr;
+    imu = new Bobot::BMI160(i2c_bus, GPIO_NUM_4, 0x69);
+    if (!imu->init()) {
+      ESP_LOGE(TAG, "Failed to initialize BMI160 at both 0x68 and 0x69");
+      // Continue without IMU
+      delete imu;
+      imu = nullptr;
+    } else {
+      ESP_LOGI(TAG, "BMI160 IMU initialized at 0x69");
+    }
   } else {
-    ESP_LOGI(TAG, "BMI160 IMU initialized");
+    ESP_LOGI(TAG, "BMI160 IMU initialized at 0x68");
     
     // Configure GPIO interrupt for INT1 pin
     gpio_config_t io_conf = {};
