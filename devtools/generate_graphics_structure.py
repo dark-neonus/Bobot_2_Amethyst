@@ -172,8 +172,9 @@ IdleTimeMaxMS = 3000
         temp_png_dir.mkdir(exist_ok=True)
         
         # Export frames as PNG sequence
-        # Frame naming: Frame_00.png, Frame_01.png, etc.
-        output_pattern = temp_png_dir / "Frame_{frame2}.png"
+        # Frame naming: Frame_0.png, Frame_1.png, etc.
+        # Note: Use {frame} (0-indexed) not {frame2} to get correct frame order
+        output_pattern = temp_png_dir / "Frame_{frame}.png"
         
         try:
             cmd = [
@@ -192,8 +193,18 @@ IdleTimeMaxMS = 3000
             )
             
             if result.returncode == 0:
-                # Get list of exported PNG files and rename them to start from 00
-                png_files = sorted(temp_png_dir.glob("Frame_*.png"))
+                # Get list of exported PNG files and sort them numerically by frame number
+                png_files = list(temp_png_dir.glob("Frame_*.png"))
+                
+                # Sort numerically by extracting the frame number from filename
+                # Frame_0.png -> 0, Frame_10.png -> 10, etc.
+                def extract_frame_number(filepath):
+                    # Extract number from "Frame_N.png"
+                    stem = filepath.stem  # "Frame_N"
+                    num_str = stem.split('_')[1]  # "N"
+                    return int(num_str)
+                
+                png_files.sort(key=extract_frame_number)
                 
                 # Rename files to ensure sequential numbering starting from 00
                 renamed_files = []
@@ -257,7 +268,8 @@ IdleTimeMaxMS = 3000
                             pixel = img.getpixel((x, y))
                             # In PIL '1' mode: 0 = black, 255 = white
                             # For u8g2: 1 = pixel on, 0 = pixel off
-                            if pixel == 0:  # Black pixel
+                            # Invert: white pixels in source become pixels on display
+                            if pixel != 0:  # White pixel (inverted)
                                 byte_val |= (1 << bit)
                     bitmap_data.append(byte_val)
             

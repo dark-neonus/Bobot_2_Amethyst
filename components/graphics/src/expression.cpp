@@ -243,29 +243,35 @@ void Expression::update(uint32_t deltaTimeMs) {
                 if (idleTimeRemainingMs > deltaTimeMs) {
                     idleTimeRemainingMs -= deltaTimeMs;
                 } else {
-                    // Idle time finished, start animation from frame 1
+                    // Idle time finished, start animation
+                    // We'll start from frame 1 on the NEXT frame advancement
                     idleTimeRemainingMs = 0;
                     animState = AnimationState::Playing;
-                    currentFrameIndex = 1;  // Start animation at frame 1, not 0
+                    currentFrameIndex = 0;  // Still on frame 0
                     animTimeAccumulatorMs = 0;
-                    ESP_LOGD(TAG, "Starting blink animation");
+                    ESP_LOGI(TAG, "Starting blink animation from frame 0");
                 }
             } else { // AnimationState::Playing
-                // Play animation (frames 1 to N-1)
+                // Play animation from frame 1 to last frame, then back to idle
                 animTimeAccumulatorMs += deltaTimeMs;
                 
                 uint32_t frameDurationMs = static_cast<uint32_t>(1000.0f / animationFPS);
                 
                 while (animTimeAccumulatorMs >= frameDurationMs) {
                     animTimeAccumulatorMs -= frameDurationMs;
-                    currentFrameIndex++;
                     
-                    // Check if animation completed (reached end of frames)
+                    // Advance to next frame
+                    size_t oldFrame = currentFrameIndex;
+                    currentFrameIndex++;
+                    ESP_LOGI(TAG, "Frame advance: %zu -> %zu (total: %zu)", 
+                             oldFrame, currentFrameIndex, frames.size());
+                    
+                    // Check if animation completed (reached end)
                     if (currentFrameIndex >= frames.size()) {
                         currentFrameIndex = 0;  // Reset to idle frame
                         animState = AnimationState::Idle;
                         idleTimeRemainingMs = generateIdleTime();
-                        ESP_LOGD(TAG, "Blink animation completed, idle for %u ms", 
+                        ESP_LOGI(TAG, "Blink animation completed, back to idle (frame 0) for %u ms", 
                                  idleTimeRemainingMs);
                         break;
                     }
