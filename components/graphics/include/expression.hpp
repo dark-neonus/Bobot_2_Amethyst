@@ -96,6 +96,8 @@ private:
     size_t currentFrameIndex;
     size_t totalFrameCount;  // Total frames validated
     std::string expressionPath;  // Store path for lazy loading
+    uint16_t frameWidth;   // Frame dimensions from Description.ini
+    uint16_t frameHeight;
     LoopType loopType;
     float animationFPS;
     uint32_t idleTimeMinMs;

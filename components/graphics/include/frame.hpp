@@ -11,10 +11,11 @@ namespace Graphics {
 /**
  * @brief Frame class holding bitmap data in u8g2-compatible format
  * 
- * Binary format:
- * - Bytes 0-1: width (little-endian uint16)
- * - Bytes 2-3: height (little-endian uint16)
- * - Remaining bytes: monochrome bitmap data (8 vertical pixels per byte, column-major)
+ * Binary format (optimized):
+ * - N bytes: monochrome bitmap data (8 vertical pixels per byte, column-major)
+ * 
+ * Frame dimensions are stored in Expression's Description.ini to reduce file size
+ * and improve loading speed (read dimensions once, reuse for all frames).
  */
 class Frame {
 public:
@@ -32,9 +33,11 @@ public:
     /**
      * @brief Load frame from file path using DMA
      * @param filePath Path to the frame binary file
+     * @param width Frame width in pixels
+     * @param height Frame height in pixels
      * @return true if successful, false otherwise
      */
-    bool loadFromFile(const char* filePath);
+    bool loadFromFile(const char* filePath, uint16_t width, uint16_t height);
 
     /**
      * @brief Get frame width

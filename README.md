@@ -341,7 +341,7 @@ Expression
 ```
 
 Frame binary format:
-Each frame file is binary file with monochrome bitmap data optimized for u8g2 library. Format structure: first 2 bytes are frame width as little-endian uint16, next 2 bytes are frame height as little-endian uint16, remaining bytes are monochrome bitmap data where each byte represents 8 vertical pixels organized in column-major order. During runtime frames are read from SD card and passed directly to u8g2 display functions.
+Each frame file is binary file with monochrome bitmap data optimized for u8g2 library. Frame dimensions are stored in Description.ini to reduce file size and improve loading speed. Format structure: monochrome bitmap data where each byte represents 8 vertical pixels organized in column-major order. During runtime dimensions are read once from Description.ini, then frames are read from SD card and passed directly to u8g2 display functions.
 
 Expression `Description.ini`:
 ```ini
@@ -367,6 +367,11 @@ Type = IdleBlink ; default = IdleBlink
 AnimationFPS = 20 ; default = 20
 IdleTimeMinMS = 1000 ; default = 1000
 IdleTimeMaxMS = 1000 ; default = 1000
+
+[Dimensions]
+; Frame dimensions (auto-filled by export tool)
+Width = 128
+Height = 64
 ```
 
 ##### Library

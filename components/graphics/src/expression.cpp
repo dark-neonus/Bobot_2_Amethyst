@@ -14,6 +14,7 @@ namespace Graphics {
 
 Expression::Expression()
     : currentFrameIndex(0), totalFrameCount(0), expressionPath(""),
+      frameWidth(0), frameHeight(0),
       loopType(LoopType::IdleBlink), animationFPS(20.0f), 
       idleTimeMinMs(1000), idleTimeMaxMs(1000),
       animState(AnimationState::Idle), idleTimeRemainingMs(0),
@@ -148,10 +149,23 @@ bool Expression::parseDescriptionIni(const char* iniPath) {
         } else if (strcmp(key, "IdleTimeMaxMS") == 0) {
             idleTimeMaxMs = atoi(value);
             ESP_LOGI(TAG, "Idle time max: %u ms", idleTimeMaxMs);
+        } else if (strcmp(key, "Width") == 0) {
+            frameWidth = atoi(value);
+            ESP_LOGI(TAG, "Frame width: %u px", frameWidth);
+        } else if (strcmp(key, "Height") == 0) {
+            frameHeight = atoi(value);
+            ESP_LOGI(TAG, "Frame height: %u px", frameHeight);
         }
     }
 
     fclose(file);
+    
+    // Validate dimensions were provided
+    if (frameWidth == 0 || frameHeight == 0) {
+        ESP_LOGW(TAG, "Frame dimensions not found in Description.ini (using defaults)");
+        // Will fail gracefully when loading frames if dimensions are invalid
+    }
+    
     return true;
 }
 
@@ -176,15 +190,8 @@ size_t Expression::validateFrames(const char* framesDir) {
             break;
         }
 
-        // Verify file has minimum size (4 bytes header minimum)
-        fseek(testFile, 0, SEEK_END);
-        long fileSize = ftell(testFile);
+        // File exists and is readable (no need to check size anymore)
         fclose(testFile);
-
-        if (fileSize < 4) {
-            ESP_LOGE(TAG, "Frame file too small: %s (%ld bytes)", framePath, fileSize);
-            return 0;  // Validation failed
-        }
 
         frameCount++;
     }
@@ -224,9 +231,15 @@ bool Expression::loadFrame(size_t frameIndex) {
     //   - FatFS f_read() for more direct control
     //   - Async file reading task that loads during display update
     //   - DMA-direct block reading from SD card
+    //
+    // OPTIMIZATION: Frame dimensions now read once from Description.ini
+    //   instead of from each frame file header, reducing:
+    //   - File read operations (N header reads eliminated)
+    //   - Per-frame overhead (4 bytes × N frames)
+    //   - Total loading time per frame
     
     auto frame = std::make_unique<Frame>();
-    if (!frame->loadFromFile(framePath)) {
+    if (!frame->loadFromFile(framePath, frameWidth, frameHeight)) {
         ESP_LOGE(TAG, "Failed to load frame %zu from: %s", frameIndex, framePath);
         return false;
     }

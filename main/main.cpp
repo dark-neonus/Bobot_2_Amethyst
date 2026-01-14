@@ -401,6 +401,7 @@ void graphicsTestTask(void* parameter) {
   uint32_t lastUpdateTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
   uint32_t uiButtonHoldTime = 0;
   bool uiButtonWasPressed = false;
+  bool modeSwitchTriggered = false;  // Prevents re-trigger until button released
   
   // Polling fallback for IMU
   uint32_t poll_counter = 0;
@@ -446,17 +447,18 @@ void graphicsTestTask(void* parameter) {
     // Check UI button state
     bool uiButtonPressed = buttonDriver->isButtonPressed(Bobot::Button::UI);
     
-    // Detect UI button hold for 2 seconds
+    // Detect UI button hold for instant mode switch
     if (uiButtonPressed && !uiButtonWasPressed) {
       // Button just pressed
       uiButtonHoldTime = 0;
       uiButtonWasPressed = true;
-    } else if (uiButtonPressed && uiButtonWasPressed) {
-      // Button being held
+      modeSwitchTriggered = false;  // Reset trigger flag on new press
+    } else if (uiButtonPressed && uiButtonWasPressed && !modeSwitchTriggered) {
+      // Button being held (and hasn't triggered yet)
       uiButtonHoldTime += deltaTime;
       
-      if (uiButtonHoldTime >= 2000) {
-        // Held for 2 seconds - switch mode
+      if (uiButtonHoldTime >= 50) {
+        // Held for 50ms - switch mode
         currentMode++;
         
         // Cycle: -1 (old UI) -> 0 -> 1 -> ... -> (n-1) -> -1
@@ -487,17 +489,14 @@ void graphicsTestTask(void* parameter) {
           currentExpression.reset();
         }
         
-        // Wait for button release
-        while (buttonDriver->isButtonPressed(Bobot::Button::UI)) {
-          vTaskDelay(pdMS_TO_TICKS(50));
-        }
-        uiButtonHoldTime = 0;
-        uiButtonWasPressed = false;
+        // Mark as triggered to prevent re-triggering until button is released
+        modeSwitchTriggered = true;
       }
     } else if (!uiButtonPressed && uiButtonWasPressed) {
-      // Button released before 2 seconds
+      // Button released
       uiButtonHoldTime = 0;
       uiButtonWasPressed = false;
+      modeSwitchTriggered = false;  // Allow new trigger on next press
     }
     
     // Render current mode
@@ -507,7 +506,7 @@ void graphicsTestTask(void* parameter) {
       buttonDriver->readButtons(button_states);
       
       drawUI();
-      vTaskDelay(pdMS_TO_TICKS(50));  // 20 Hz for UI
+      vTaskDelay(pdMS_TO_TICKS(20));  // 50 Hz for UI
     } else {
       // Show expression animation
       if (expressionLoaded && currentExpression) {
@@ -600,6 +599,13 @@ extern "C" void app_main(void) {
     return;
   }
   ESP_LOGI(TAG, "Button driver initialized");
+  
+  // Start button polling task
+  if (!buttonDriver->startPolling()) {
+    ESP_LOGE(TAG, "Failed to start button polling");
+    return;
+  }
+  ESP_LOGI(TAG, "Button polling started");
   
   // Scan I2C bus to see what devices are present
   ESP_LOGI(TAG, "Scanning I2C bus...");

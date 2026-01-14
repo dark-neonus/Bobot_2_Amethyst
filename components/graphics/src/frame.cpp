@@ -51,8 +51,12 @@ void Frame::cleanup() {
     bitmapSize = 0;
 }
 
-bool Frame::loadFromFile(const char* filePath) {
+bool Frame::loadFromFile(const char* filePath, uint16_t frameWidth, uint16_t frameHeight) {
     cleanup();
+
+    // Store provided dimensions
+    width = frameWidth;
+    height = frameHeight;
 
     // Open file
     FILE* file = fopen(filePath, "rb");
@@ -60,19 +64,6 @@ bool Frame::loadFromFile(const char* filePath) {
         ESP_LOGE(TAG, "Failed to open frame file: %s", filePath);
         return false;
     }
-
-    // Read width and height (little-endian uint16)
-    uint8_t header[4];
-    size_t bytesRead = fread(header, 1, 4, file);
-    if (bytesRead != 4) {
-        ESP_LOGE(TAG, "Failed to read frame header: %s", filePath);
-        fclose(file);
-        return false;
-    }
-
-    // Parse little-endian width and height
-    width = header[0] | (header[1] << 8);
-    height = header[2] | (header[3] << 8);
 
     ESP_LOGI(TAG, "Loading frame %s: %dx%d", filePath, width, height);
 
@@ -95,13 +86,19 @@ bool Frame::loadFromFile(const char* filePath) {
     // The fread() call triggers a VFS -> FatFS -> SDMMC driver chain where
     // the SDMMC hardware DMA controller handles the actual data movement.
     // 
+    // OPTIMIZATION: By removing 4-byte header from each frame file:
+    //   - Reduces per-frame overhead (4 bytes × N frames saved)
+    //   - Single dimensions read from Description.ini vs N header reads
+    //   - Faster file open/seek/read cycle (smaller files)
+    //   - Better SD card block alignment (no odd 4-byte offset)
+    // 
     // For future energy-efficient operation:
     //   - This read should be called immediately AFTER display update
     //   - Can be made async using FreeRTOS task + semaphore
     //   - CPU can enter light sleep while DMA transfers data
     //   - Current implementation: DMA active, but CPU waits (blocking)
     //   - Future implementation: DMA active, CPU sleeps (non-blocking)
-    bytesRead = fread(bitmapData, 1, bitmapSize, file);
+    size_t bytesRead = fread(bitmapData, 1, bitmapSize, file);
     fclose(file);
 
     if (bytesRead != bitmapSize) {
