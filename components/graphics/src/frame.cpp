@@ -90,7 +90,17 @@ bool Frame::loadFromFile(const char* filePath) {
         return false;
     }
 
-    // Read bitmap data using DMA-friendly block read
+    // Read bitmap data using DMA-enabled block read
+    // NOTE: ESP-IDF's SDMMC peripheral uses DMA internally for data transfer
+    // The fread() call triggers a VFS -> FatFS -> SDMMC driver chain where
+    // the SDMMC hardware DMA controller handles the actual data movement.
+    // 
+    // For future energy-efficient operation:
+    //   - This read should be called immediately AFTER display update
+    //   - Can be made async using FreeRTOS task + semaphore
+    //   - CPU can enter light sleep while DMA transfers data
+    //   - Current implementation: DMA active, but CPU waits (blocking)
+    //   - Future implementation: DMA active, CPU sleeps (non-blocking)
     bytesRead = fread(bitmapData, 1, bitmapSize, file);
     fclose(file);
 

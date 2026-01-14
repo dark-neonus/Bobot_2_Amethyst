@@ -94,6 +94,8 @@ public:
 private:
     std::vector<std::unique_ptr<Frame>> frames;
     size_t currentFrameIndex;
+    size_t totalFrameCount;  // Total frames validated
+    std::string expressionPath;  // Store path for lazy loading
     LoopType loopType;
     float animationFPS;
     uint32_t idleTimeMinMs;
@@ -107,6 +109,7 @@ private:
     AnimationState animState;
     uint32_t idleTimeRemainingMs;
     uint32_t animTimeAccumulatorMs;
+    bool firstLoopComplete;  // Track if all frames loaded (for Loop mode)
 
     /**
      * @brief Parse Description.ini file
@@ -116,11 +119,24 @@ private:
     bool parseDescriptionIni(const char* iniPath);
 
     /**
-     * @brief Load all frames from Frames/ directory
+     * @brief Validate all frame files exist (upfront check)
      * @param framesDir Path to Frames directory
+     * @return Number of valid frames found (0 on error)
+     */
+    size_t validateFrames(const char* framesDir);
+
+    /**
+     * @brief Load specific frame on-demand (lazy loading)
+     * @param frameIndex Frame index to load
      * @return true if successful
      */
-    bool loadFrames(const char* framesDir);
+    bool loadFrame(size_t frameIndex);
+
+    /**
+     * @brief Preload next frame in background (DMA-ready positioning)
+     * Called after display update to prepare next frame
+     */
+    void preloadNextFrame();
 
     /**
      * @brief Generate random idle time
