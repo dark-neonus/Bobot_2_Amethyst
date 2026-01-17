@@ -1,6 +1,29 @@
 # Bobot_2_Amethyst
 Second robot from Bobot series of robots. A huge amount of things in this robot address problems of previous Bobot.
 
+## Table of Contents
+
+- [Features](#features)
+  - [Mechanical](#mechanical)
+    - [Handle](#handle)
+    - [Back Buttons](#back-buttons)
+    - [Power Switch](#power-switch)
+    - [Screwdriver With Built In Case](#screwdriver-with-built-in-case)
+    - [Access panel](#access-panel)
+  - [Hardware](#hardware)
+    - [Shortcut Components List](#shortcut-components-list)
+    - [ESP32 Microcontroller](#esp32-microcontroller)
+    - [2.42 Inch OLED I2C Display](#242-inch-oled-i2c-display)
+    - [MAX98357A Audio Module](#max98357a-audio-module)
+    - [Li-Po 3000mAh 3.7V Battery 1S2P](#li-po-3000mah-37v-battery-1s2p)
+    - [BQ25895 Battery Management Module](#bq25895-battery-management-module)
+    - [Button Board Based On MCP23017 I/O Expander](#button-board-based-on-mcp23017-io-expander)
+    - [Touch Board Based On MPR121QR2 Touch Controller](#touch-board-based-on-mpr121qr2-touch-controller)
+  - [Software](#software)
+    - [Assets](#assets)
+    - [Developer Tools](#developer-tools)
+    - [Graphic Engine](#graphic-engine)
+
 # Features 
 
 ## Mechanical
@@ -61,7 +84,7 @@ At the right side there is panel on 2 screws which give access to main microcont
 | MCP23017 | 1 | 16-Bit I/O Expander with Serial Interface(16 parallel pins to I2C) | [datasheet](https://ww1.microchip.com/downloads/en/devicedoc/20001952c.pdf) | [store](https://www.aliexpress.com/item/1005006974304942.html) |
 | MPR121QR2  | 1 | 12 touch buttons driver with I2C interface | [datasheet](https://files.seeedstudio.com/wiki/Grove-I2C_Touch_Sensor/res/Freescale_Semiconductor;MPR121QR2.pdf) | [store](https://www.aliexpress.com/item/1005006944721047.html) |
 | TL2285OA  | 9 | Push latch button without fixation | [datasheet](https://www.alldatasheet.com/html-pdf/437236/E-SWITCH/TL2285OA/385/1/TL2285OA.html) | [store](https://www.aliexpress.com/item/1005006775951751.html) |
-| MAX98357A | 2 | Chip for audio output: DAC + amplifier in one chip | - | [store](https://www.aliexpress.com/item/1005010444800168.html) |
+| MAX98357A | 2 | Chip for audio output: DAC + amplifier in one chip | [datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/max98357a-max98357b.pdf) | [store](https://www.aliexpress.com/item/1005010444800168.html) |
 | BMI160 | 1 | Sensor gyroscope + accelerometer 6DOF | - | [store](https://www.aliexpress.com/item/1005009421405155.html) |
 
 | Component | Quantity| Store |
@@ -116,6 +139,42 @@ esp32 dedicated i2c pins. This display use SSD1309 driver.
 #### Links
 
 [General information](https://turkish.chenghaolcd.com/doc/44205281/2-42-oled-display-module-ic-i2c-spi-serial-with-ssd1309-controller.pdf)
+
+### MAX98357A Audio Module
+
+#### Description
+
+Bobot uses two MAX98357A modules for stereo audio output. Each module integrates a DAC and Class D amplifier. One module is strapped for left channel, the other for right channel. The modules communicate with ESP32 via shared I2S bus.
+
+#### Configurations
+
+Hardware:
+
+1. Left channel module: GAIN <mark>CONNECTION_TBD</mark> and <span style="text-decoration:overline">SD_MODE</span> strapped to VCC for left channel output
+2. Right channel module: GAIN <mark>CONNECTION_TBD</mark> and <span style="text-decoration:overline">SD_MODE</span> strapped to GND for right channel output
+3. Both modules share common I2S data and clock lines
+4. 1 µF decoupling capacitor between VDD and GND for each module
+
+Software:
+
+1. Configure ESP32 I2S peripheral in stereo mode
+2. Set sample rate to <mark>SAMPLE_RATE_TBD</mark> and bit depth to <mark>BIT_DEPTH_TBD</mark>
+
+#### Pinout
+
+| Pin / Signal | Connection | Net / GPIO | Description |
+|-------------|------------|------------|-------------|
+| LRC (LRCLK) | ESP32 | GPIO27 | I²S word select (left/right clock); shared between both modules. |
+| BCLK | ESP32 | GPIO26 | I²S bit clock; shared between both modules. |
+| DIN | ESP32 | GPIO25 | I²S serial data input; shared between both modules. |
+| GAIN | Configured per module | — | Gain setting pin; sets output gain. |
+| <span style="text-decoration:overline">SD_MODE</span> | Configured per module | — | Channel select: left or right. |
+| VDD | 3.3V | 3.3V | Power supply (2.5-5.5V); 1 µF decoupling to GND. |
+| GND | Ground | GND | Ground. |
+
+#### Links
+
+[Datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/max98357a-max98357b.pdf)
 
 ### Li-Po 3000mAh 3.7V Battery 1S2P
 
