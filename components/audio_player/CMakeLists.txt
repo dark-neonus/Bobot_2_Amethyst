@@ -1,0 +1,5 @@
+idf_component_register(
+    SRCS "audio_player.cpp"
+    INCLUDE_DIRS "include"
+    REQUIRES driver sd_card esp_driver_i2s
+)

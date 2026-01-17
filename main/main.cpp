@@ -12,6 +12,7 @@
 #include "sd_card.hpp"
 #include "bmi160.hpp"
 #include "asset_uploader.hpp"
+#include "audio_player.hpp"
 #include "sdkconfig.h"
 
 // Graphics engine
@@ -34,6 +35,7 @@ static Bobot::ButtonDriver* buttonDriver = nullptr;
 static Bobot::SDCard* sdCard = nullptr;
 static Bobot::BMI160* imu = nullptr;
 static Bobot::AssetUploader* assetUploader = nullptr;
+static Bobot::AudioPlayer* audioPlayer = nullptr;
 static i2c_master_bus_handle_t i2c_bus = nullptr;
 
 // Upload mode flag
@@ -74,6 +76,20 @@ int countFilesRecursive(const char* path) {
 }
 
 // Button states
+static bool prev_button_states[9] = {false};
+static uint32_t settings_button_press_time = 0;
+
+/**
+ * @brief Trigger audio playback (accessible from any task)
+ * Audio runs independently on Core 0, so this is thread-safe
+ */
+inline void triggerAudioPlayback() {
+  if (audioPlayer) {
+    audioPlayer->triggerPlayback();
+  } else {
+    ESP_LOGE(TAG, "audioPlayer is not initialized!");
+  }
+}
 static bool button_states[9] = {false};
 
 // IMU data and interrupt flag
@@ -295,9 +311,47 @@ void uiTask(void* parameter) {
       }
     }
     
-    // Read button states
-    if (buttonDriver->readButtons(button_states)) {
+    // Read button states and detect settings button press for audio
+    bool readSuccess = buttonDriver->readButtons(button_states);
+    
+    // Always log button 6 state for debugging
+    static int debug_counter = 0;
+    if (++debug_counter % 100 == 0) {  // Log every 100 cycles
+      ESP_LOGI(TAG, "Button[6]=%d, readSuccess=%d", button_states[6], readSuccess);
+    }
+    
+    if (readSuccess) {
       needs_redraw = true;
+      
+      // Log button state changes for debugging
+      if (button_states[6] != prev_button_states[6]) {
+        ESP_LOGI(TAG, "Settings button state changed: prev=%d, now=%d", prev_button_states[6], button_states[6]);
+      }
+      
+      // Detect settings button (index 6) press and hold for audio trigger
+      if (button_states[6] && !prev_button_states[6]) {
+        // Settings button just pressed
+        settings_button_press_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+        ESP_LOGI(TAG, "Settings button pressed at %dms", settings_button_press_time);
+      } else if (!button_states[6] && prev_button_states[6]) {
+        // Settings button just released - check if held for at least 10ms
+        uint32_t press_duration = (xTaskGetTickCount() * portTICK_PERIOD_MS) - settings_button_press_time;
+        ESP_LOGI(TAG, "Settings button released, duration: %dms", press_duration);
+        if (press_duration >= 10) {
+          // Trigger audio playback (minimum 10ms to avoid accidental triggers)
+          if (audioPlayer) {
+            ESP_LOGI(TAG, "Settings button pressed for %dms - playing meow", press_duration);
+            audioPlayer->triggerPlayback();
+          } else {
+            ESP_LOGE(TAG, "audioPlayer is NULL!");
+          }
+        } else {
+          ESP_LOGW(TAG, "Press duration too short: %dms (need >= 10ms)", press_duration);
+        }
+      }
+      
+      // Save previous button states
+      memcpy(prev_button_states, button_states, sizeof(button_states));
     }
     
     // Update file count every 5 seconds
@@ -505,11 +559,51 @@ void graphicsTestTask(void* parameter) {
       // Read button states for UI
       buttonDriver->readButtons(button_states);
       
+      // Check for Settings button press for audio trigger
+      if (button_states[6] != prev_button_states[6]) {
+        ESP_LOGI(TAG, "Settings button state changed: prev=%d, now=%d", prev_button_states[6], button_states[6]);
+      }
+      
+      if (button_states[6] && !prev_button_states[6]) {
+        // Settings button just pressed
+        settings_button_press_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+        ESP_LOGI(TAG, "Settings button pressed at %dms", settings_button_press_time);
+      } else if (!button_states[6] && prev_button_states[6]) {
+        // Settings button just released - check if held for at least 10ms
+        uint32_t press_duration = (xTaskGetTickCount() * portTICK_PERIOD_MS) - settings_button_press_time;
+        ESP_LOGI(TAG, "Settings button released, duration: %dms", press_duration);
+        if (press_duration >= 10) {
+          // Trigger audio playback (minimum 10ms to avoid accidental triggers)
+          ESP_LOGI(TAG, "Settings button pressed for %dms - playing meow", press_duration);
+          triggerAudioPlayback();
+        } else {
+          ESP_LOGW(TAG, "Press duration too short: %dms (need >= 10ms)", press_duration);
+        }
+      }
+      
+      // Save previous button states
+      memcpy(prev_button_states, button_states, sizeof(button_states));
+      
       drawUI();
       vTaskDelay(pdMS_TO_TICKS(20));  // 50 Hz for UI
     } else {
       // Show expression animation
       if (expressionLoaded && currentExpression) {
+        // Read buttons for audio trigger
+        buttonDriver->readButtons(button_states);
+        
+        // Check for Settings button press for audio trigger
+        if (button_states[6] && !prev_button_states[6]) {
+          settings_button_press_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+        } else if (!button_states[6] && prev_button_states[6]) {
+          uint32_t press_duration = (xTaskGetTickCount() * portTICK_PERIOD_MS) - settings_button_press_time;
+          if (press_duration >= 10) {
+            ESP_LOGI(TAG, "Expression mode: playing audio (duration: %dms)", press_duration);
+            triggerAudioPlayback();
+          }
+        }
+        memcpy(prev_button_states, button_states, sizeof(button_states));
+        
         currentExpression->update(deltaTime);
         
         display->clear();
@@ -669,6 +763,29 @@ extern "C" void app_main(void) {
     // Add ISR handler for INT1 pin
     gpio_isr_handler_add(GPIO_NUM_4, imu_isr_handler, nullptr);
     
+    
+    // Initialize audio player on core 0
+    audioPlayer = new Bobot::AudioPlayer();
+    Bobot::AudioPlayer::Config audio_config = {
+      .i2s_bclk_pin = 26,
+      .i2s_lrc_pin = 27,
+      .i2s_dout_pin = 25,
+      .sample_rate = 22050,
+      .dma_buf_count = 8,          // 8 DMA buffers
+      .dma_buf_len = 512,          // 512 samples per buffer (2KB each, 16KB total DMA)
+      .ping_pong_buf_size = 8192   // 8KB ping-pong buffers for faster iterations
+    };
+    
+    if (audioPlayer->init(audio_config) == ESP_OK) {
+      if (audioPlayer->start() == ESP_OK) {
+        audioPlayer->setTriggerFile("/sdcard/assets/audio/meow_optimized.wav");
+        ESP_LOGI(TAG, "Audio player initialized and running on core 0");
+      } else {
+        ESP_LOGE(TAG, "Failed to start audio player task");
+      }
+    } else {
+      ESP_LOGE(TAG, "Failed to initialize audio player");
+    }
     ESP_LOGI(TAG, "BMI160 interrupt configured on GPIO4");
     
     // Do initial sensor read to display current state (gravity)
