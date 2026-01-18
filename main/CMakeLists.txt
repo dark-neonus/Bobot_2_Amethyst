@@ -13,6 +13,7 @@ idf_component_register(
         bmi160
         asset_uploader
         audio_player
+        buzzer
         graphics
     PRIV_REQUIRES
         driver

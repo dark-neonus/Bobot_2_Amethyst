@@ -13,6 +13,7 @@
 #include "bmi160.hpp"
 #include "asset_uploader.hpp"
 #include "audio_player.hpp"
+#include "buzzer.hpp"
 #include "sdkconfig.h"
 
 // Graphics engine
@@ -36,6 +37,7 @@ static Bobot::SDCard* sdCard = nullptr;
 static Bobot::BMI160* imu = nullptr;
 static Bobot::AssetUploader* assetUploader = nullptr;
 static Bobot::AudioPlayer* audioPlayer = nullptr;
+static Bobot::Buzzer* buzzer = nullptr;
 static i2c_master_bus_handle_t i2c_bus = nullptr;
 
 // Upload mode flag
@@ -447,7 +449,7 @@ void graphicsTestTask(void* parameter) {
   
   ESP_LOGI(TAG, "Found %zu expressions in Amethyst library", expressionNames.size());
   
-  // UI modes: -1 = old UI, 0+ = expression index
+  // UI modes: -2 = buzzer control, -1 = old UI, 0+ = expression index
   int currentMode = -1;  // Start with old UI
   std::unique_ptr<Bobot::Graphics::Expression> currentExpression;
   bool expressionLoaded = false;
@@ -515,9 +517,9 @@ void graphicsTestTask(void* parameter) {
         // Held for 50ms - switch mode
         currentMode++;
         
-        // Cycle: -1 (old UI) -> 0 -> 1 -> ... -> (n-1) -> -1
+        // Cycle: -2 (buzzer) -> -1 (old UI) -> 0 -> 1 -> ... -> (n-1) -> -2
         if (currentMode >= (int)expressionNames.size()) {
-          currentMode = -1;  // Back to old UI
+          currentMode = -2;  // Back to buzzer mode
         }
         
         ESP_LOGI(TAG, "Switching to mode %d", currentMode);
@@ -554,7 +556,102 @@ void graphicsTestTask(void* parameter) {
     }
     
     // Render current mode
-    if (currentMode == -1) {
+    if (currentMode == -2) {
+      // Buzzer control mode
+      static uint32_t debug_counter = 0;
+      debug_counter++;
+      
+      if (debug_counter % 50 == 1) {  // Log every 50 iterations (~1 second)
+        ESP_LOGI(TAG, "Buzzer mode active, buzzer ptr: %p", buzzer);
+        if (buzzer) {
+          ESP_LOGI(TAG, "Buzzer state: %s, duty: %d%%", 
+                   buzzer->isOn() ? "ON" : "OFF", buzzer->getDutyCycle());
+        }
+      }
+      
+      buttonDriver->readButtons(button_states);
+      
+      // Log button state changes
+      bool any_button_changed = false;
+      for (int i = 0; i < 9; i++) {
+        if (button_states[i] != prev_button_states[i]) {
+          any_button_changed = true;
+          ESP_LOGI(TAG, "Button %d changed: %d -> %d", i, prev_button_states[i], button_states[i]);
+        }
+      }
+      
+      // OK button (index 4) toggles buzzer on/off
+      if (button_states[4] && !prev_button_states[4]) {
+        ESP_LOGI(TAG, "OK button pressed");
+        if (buzzer) {
+          buzzer->toggle();
+          ESP_LOGI(TAG, "Buzzer toggled: %s", buzzer->isOn() ? "ON" : "OFF");
+        } else {
+          ESP_LOGE(TAG, "Buzzer is NULL!");
+        }
+      }
+      
+      // UP button (index 1) increases duty cycle by 10%
+      if (button_states[1] && !prev_button_states[1]) {
+        ESP_LOGI(TAG, "UP button pressed");
+        if (buzzer) {
+          uint8_t duty = buzzer->getDutyCycle();
+          ESP_LOGI(TAG, "Current duty: %d%%", duty);
+          if (duty < 100) {
+            duty += 10;
+            buzzer->setDutyCycle(duty);
+            ESP_LOGI(TAG, "Buzzer duty cycle increased to: %d%%", duty);
+          } else {
+            ESP_LOGI(TAG, "Duty cycle already at maximum (100%%)");
+          }
+        } else {
+          ESP_LOGE(TAG, "Buzzer is NULL!");
+        }
+      }
+      
+      // DOWN button (index 7) decreases duty cycle by 10%
+      if (button_states[7] && !prev_button_states[7]) {
+        ESP_LOGI(TAG, "DOWN button pressed");
+        if (buzzer) {
+          uint8_t duty = buzzer->getDutyCycle();
+          ESP_LOGI(TAG, "Current duty: %d%%", duty);
+          if (duty >= 10) {
+            duty -= 10;
+            buzzer->setDutyCycle(duty);
+            ESP_LOGI(TAG, "Buzzer duty cycle decreased to: %d%%", duty);
+          } else {
+            ESP_LOGI(TAG, "Duty cycle already at minimum (0%%)");
+          }
+        } else {
+          ESP_LOGE(TAG, "Buzzer is NULL!");
+        }
+      }
+      
+      memcpy(prev_button_states, button_states, sizeof(button_states));
+      
+      // Display buzzer status
+      display->clear();
+      display->setFont(u8g2_font_6x10_tr);
+      display->drawString(2, 15, "Buzzer Control");
+      
+      if (buzzer) {
+        char status[32];
+        snprintf(status, sizeof(status), "Status: %s", buzzer->isOn() ? "ON" : "OFF");
+        display->drawString(2, 30, status);
+        
+        char duty[32];
+        snprintf(duty, sizeof(duty), "Intensity: %d%%", buzzer->getDutyCycle());
+        display->drawString(2, 45, duty);
+      } else {
+        display->drawString(2, 30, "Not initialized");
+      }
+      
+      display->setFont(u8g2_font_5x7_tr);
+      display->drawString(2, 58, "OK:On/Off UP/DN:+/-");
+      
+      display->update();
+      vTaskDelay(pdMS_TO_TICKS(20));  // 50 Hz
+    } else if (currentMode == -1) {
       // Show old UI
       // Read button states for UI
       buttonDriver->readButtons(button_states);
@@ -747,8 +844,10 @@ extern "C" void app_main(void) {
     }
   } else {
     ESP_LOGI(TAG, "BMI160 IMU initialized at 0x68");
-    
-    // Configure GPIO interrupt for INT1 pin
+  }
+  
+  // Configure GPIO interrupt for INT1 pin if IMU is available
+  if (imu != nullptr) {
     gpio_config_t io_conf = {};
     io_conf.intr_type = GPIO_INTR_POSEDGE;  // Rising edge (active high)
     io_conf.mode = GPIO_MODE_INPUT;
@@ -763,29 +862,6 @@ extern "C" void app_main(void) {
     // Add ISR handler for INT1 pin
     gpio_isr_handler_add(GPIO_NUM_4, imu_isr_handler, nullptr);
     
-    
-    // Initialize audio player on core 0
-    audioPlayer = new Bobot::AudioPlayer();
-    Bobot::AudioPlayer::Config audio_config = {
-      .i2s_bclk_pin = 26,
-      .i2s_lrc_pin = 27,
-      .i2s_dout_pin = 25,
-      .sample_rate = 22050,
-      .dma_buf_count = 8,          // 8 DMA buffers
-      .dma_buf_len = 512,          // 512 samples per buffer (2KB each, 16KB total DMA)
-      .ping_pong_buf_size = 8192   // 8KB ping-pong buffers for faster iterations
-    };
-    
-    if (audioPlayer->init(audio_config) == ESP_OK) {
-      if (audioPlayer->start() == ESP_OK) {
-        audioPlayer->setTriggerFile("/sdcard/assets/audio/meow_optimized.wav");
-        ESP_LOGI(TAG, "Audio player initialized and running on core 0");
-      } else {
-        ESP_LOGE(TAG, "Failed to start audio player task");
-      }
-    } else {
-      ESP_LOGE(TAG, "Failed to initialize audio player");
-    }
     ESP_LOGI(TAG, "BMI160 interrupt configured on GPIO4");
     
     // Do initial sensor read to display current state (gravity)
@@ -797,6 +873,48 @@ extern "C" void app_main(void) {
       ESP_LOGI(TAG, "Initial gyro: X=%.2f Y=%.2f Z=%.2f rad/s", 
                gyro_data.x, gyro_data.y, gyro_data.z);
     }
+  }
+  
+  // Initialize audio player on core 0
+  audioPlayer = new Bobot::AudioPlayer();
+  Bobot::AudioPlayer::Config audio_config = {
+    .i2s_bclk_pin = 26,
+    .i2s_lrc_pin = 27,
+    .i2s_dout_pin = 25,
+    .sample_rate = 22050,
+    .dma_buf_count = 8,          // 8 DMA buffers
+    .dma_buf_len = 512,          // 512 samples per buffer (2KB each, 16KB total DMA)
+    .ping_pong_buf_size = 8192   // 8KB ping-pong buffers for faster iterations
+  };
+  
+  if (audioPlayer->init(audio_config) == ESP_OK) {
+    if (audioPlayer->start() == ESP_OK) {
+      audioPlayer->setTriggerFile("/sdcard/assets/audio/meow_optimized.wav");
+      ESP_LOGI(TAG, "Audio player initialized and running on core 0");
+    } else {
+      ESP_LOGE(TAG, "Failed to start audio player task");
+    }
+  } else {
+    ESP_LOGE(TAG, "Failed to initialize audio player");
+  }
+  
+  // Initialize buzzer
+  buzzer = new Bobot::Buzzer();
+  Bobot::Buzzer::Config buzzer_config = {
+    .pin = GPIO_NUM_23,
+    .frequency = 2000,
+    .timer = LEDC_TIMER_0,
+    .channel = LEDC_CHANNEL_0,
+    .mode = LEDC_LOW_SPEED_MODE
+  };
+  
+  if (buzzer->init(buzzer_config) == ESP_OK) {
+    buzzer->setDutyCycle(50);  // Default to 50% intensity
+    ESP_LOGI(TAG, "Buzzer initialized on GPIO23");
+  } else {
+    ESP_LOGE(TAG, "Failed to initialize buzzer");
+    delete buzzer;
+    buzzer = nullptr;
   }
   
   // Initialize SD card - Using 1-bit SDIO mode with FIXED hardware pins
