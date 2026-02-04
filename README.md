@@ -499,6 +499,15 @@ Usage:
 
 The upload is reliable (checksums verified), fast (WiFi bandwidth), and doesn't interfere with USB console/debugging.
 
+### Servo Control
+
+Bobot uses PCA9685 16-channel PWM driver (default I2C address 0x40) to control servo motors for legs. Driver supports up to 16 servos with angle control from 0 to 180 degrees. On startup all servos are initialized to 90 degrees center position.
+
+A servo control UI mode is available for testing and calibration. Mode is accessed by cycling through UI modes with UI button. In servo mode:
+- LEFT/RIGHT buttons switch between channels 0-15
+- UP/DOWN buttons adjust selected servo angle in 5-degree increments
+- Display shows current channel and angle
+
 ### Graphic Engine
 
 #### Position class Vec2i

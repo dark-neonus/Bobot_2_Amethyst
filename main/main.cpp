@@ -14,6 +14,7 @@
 #include "asset_uploader.hpp"
 #include "audio_player.hpp"
 #include "buzzer.hpp"
+#include "servo_driver.hpp"
 #include "sdkconfig.h"
 
 // Graphics engine
@@ -38,6 +39,7 @@ static Bobot::BMI160* imu = nullptr;
 static Bobot::AssetUploader* assetUploader = nullptr;
 static Bobot::AudioPlayer* audioPlayer = nullptr;
 static Bobot::Buzzer* buzzer = nullptr;
+static Bobot::ServoDriver* servoDriver = nullptr;
 static i2c_master_bus_handle_t i2c_bus = nullptr;
 
 // Upload mode flag
@@ -449,10 +451,14 @@ void graphicsTestTask(void* parameter) {
   
   ESP_LOGI(TAG, "Found %zu expressions in Amethyst library", expressionNames.size());
   
-  // UI modes: -2 = buzzer control, -1 = old UI, 0+ = expression index
+  // UI modes: -3 = servo control, -2 = buzzer control, -1 = old UI, 0+ = expression index
   int currentMode = -1;  // Start with old UI
   std::unique_ptr<Bobot::Graphics::Expression> currentExpression;
   bool expressionLoaded = false;
+  
+  // Servo control state
+  uint8_t currentServoChannel = 0;
+  uint8_t servoAngles[16] = {90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90};
   
   uint32_t lastUpdateTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
   uint32_t uiButtonHoldTime = 0;
@@ -517,9 +523,9 @@ void graphicsTestTask(void* parameter) {
         // Held for 50ms - switch mode
         currentMode++;
         
-        // Cycle: -2 (buzzer) -> -1 (old UI) -> 0 -> 1 -> ... -> (n-1) -> -2
+        // Cycle: -3 (servo) -> -2 (buzzer) -> -1 (old UI) -> 0 -> 1 -> ... -> (n-1) -> -3
         if (currentMode >= (int)expressionNames.size()) {
-          currentMode = -2;  // Back to buzzer mode
+          currentMode = -3;  // Back to servo mode
         }
         
         ESP_LOGI(TAG, "Switching to mode %d", currentMode);
@@ -556,7 +562,112 @@ void graphicsTestTask(void* parameter) {
     }
     
     // Render current mode
-    if (currentMode == -2) {
+    if (currentMode == -3) {
+      // Servo control mode
+      buttonDriver->readButtons(button_states);
+      
+      // LEFT button - previous channel
+      if (button_states[3] && !prev_button_states[3]) {
+        if (currentServoChannel > 0) {
+          currentServoChannel--;
+        } else {
+          currentServoChannel = 15;
+        }
+        ESP_LOGI(TAG, "Servo channel: %d", currentServoChannel);
+      }
+      
+      // RIGHT button - next channel
+      if (button_states[5] && !prev_button_states[5]) {
+        if (currentServoChannel < 15) {
+          currentServoChannel++;
+        } else {
+          currentServoChannel = 0;
+        }
+        ESP_LOGI(TAG, "Servo channel: %d", currentServoChannel);
+      }
+      
+      // UP button - increase angle
+      if (button_states[1] && !prev_button_states[1]) {
+        if (servoAngles[currentServoChannel] < 180) {
+          servoAngles[currentServoChannel] += 10;
+          if (servoAngles[currentServoChannel] > 180) {
+            servoAngles[currentServoChannel] = 180;
+          }
+          if (servoDriver) {
+            servoDriver->setAngle(currentServoChannel, servoAngles[currentServoChannel]);
+          }
+          ESP_LOGI(TAG, "Channel %d angle: %d", currentServoChannel, servoAngles[currentServoChannel]);
+        }
+      }
+      
+      // DOWN button - decrease angle
+      if (button_states[7] && !prev_button_states[7]) {
+        if (servoAngles[currentServoChannel] >= 10) {
+          servoAngles[currentServoChannel] -= 10;
+          if (servoDriver) {
+            servoDriver->setAngle(currentServoChannel, servoAngles[currentServoChannel]);
+          }
+          ESP_LOGI(TAG, "Channel %d angle: %d", currentServoChannel, servoAngles[currentServoChannel]);
+        }
+      }
+      
+      // SETTINGS button - run servo test sequence
+      if (button_states[6] && !prev_button_states[6]) {
+        if (servoDriver) {
+          ESP_LOGI(TAG, "Starting servo test sequence");
+          
+          // Set all to 0 degrees
+          ESP_LOGI(TAG, "Setting all servos to 0 degrees");
+          servoDriver->setAllAngles(0);
+          for (int i = 0; i < 16; i++) {
+            servoAngles[i] = 0;
+          }
+          vTaskDelay(pdMS_TO_TICKS(5000));
+          
+          // Set all to 180 degrees
+          ESP_LOGI(TAG, "Setting all servos to 180 degrees");
+          servoDriver->setAllAngles(180);
+          for (int i = 0; i < 16; i++) {
+            servoAngles[i] = 180;
+          }
+          vTaskDelay(pdMS_TO_TICKS(5000));
+          
+          // Set all to 90 degrees
+          ESP_LOGI(TAG, "Setting all servos to 90 degrees");
+          servoDriver->setAllAngles(90);
+          for (int i = 0; i < 16; i++) {
+            servoAngles[i] = 90;
+          }
+          
+          ESP_LOGI(TAG, "Servo test sequence complete");
+        }
+      }
+      
+      memcpy(prev_button_states, button_states, sizeof(button_states));
+      
+      // Display servo status
+      display->clear();
+      display->setFont(u8g2_font_6x10_tr);
+      display->drawString(2, 15, "Servo Control");
+      
+      if (servoDriver) {
+        char channel_info[32];
+        snprintf(channel_info, sizeof(channel_info), "Channel: %d", currentServoChannel);
+        display->drawString(2, 30, channel_info);
+        
+        char angle_info[32];
+        snprintf(angle_info, sizeof(angle_info), "Angle: %d deg", servoAngles[currentServoChannel]);
+        display->drawString(2, 45, angle_info);
+      } else {
+        display->drawString(2, 30, "Not initialized");
+      }
+      
+      display->setFont(u8g2_font_5x7_tr);
+      display->drawString(2, 58, "L/R:Ch U/D:Ang SET:Test");
+      
+      display->update();
+      vTaskDelay(pdMS_TO_TICKS(20));  // 50 Hz
+    } else if (currentMode == -2) {
       // Buzzer control mode
       static uint32_t debug_counter = 0;
       debug_counter++;
@@ -915,6 +1026,18 @@ extern "C" void app_main(void) {
     ESP_LOGE(TAG, "Failed to initialize buzzer");
     delete buzzer;
     buzzer = nullptr;
+  }
+  
+  // Initialize servo driver (PCA9685)
+  servoDriver = new Bobot::ServoDriver(i2c_bus, 0x40);
+  if (servoDriver->init() == ESP_OK) {
+    // Set all servos to 90 degrees on startup
+    servoDriver->setAllAngles(90);
+    ESP_LOGI(TAG, "Servo driver initialized, all servos set to 90 degrees");
+  } else {
+    ESP_LOGE(TAG, "Failed to initialize servo driver");
+    delete servoDriver;
+    servoDriver = nullptr;
   }
   
   // Initialize SD card - Using 1-bit SDIO mode with FIXED hardware pins

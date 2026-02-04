@@ -14,6 +14,7 @@ idf_component_register(
         asset_uploader
         audio_player
         buzzer
+        servo_driver
         graphics
     PRIV_REQUIRES
         driver
