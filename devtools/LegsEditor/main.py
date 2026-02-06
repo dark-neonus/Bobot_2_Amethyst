@@ -5,6 +5,8 @@ Spider Robot Gait Editor
 
 import sys
 import os
+import subprocess
+import atexit
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -21,6 +23,106 @@ from core.playback import PlaybackEngine
 from gui.viewport import Viewport
 from gui.properties import PropertiesPanel
 from gui.timeline import TimelinePanel
+
+
+# Global variable to track Xvfb process
+_xvfb_process = None
+
+
+def check_display_available(display=None):
+    """Check if an X display is available and accessible"""
+    if display is None:
+        display = os.environ.get('DISPLAY', '')
+    
+    if not display:
+        return False
+    
+    try:
+        # Try to run xdpyinfo to check if display is accessible
+        result = subprocess.run(
+            ['xdpyinfo', '-display', display],
+            capture_output=True,
+            timeout=2
+        )
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+
+def find_available_display():
+    """Find an available display number"""
+    for display_num in range(99, 0, -1):
+        display = f':{display_num}'
+        # Check if display is not in use
+        if not check_display_available(display):
+            return display
+    return ':99'  # Fallback
+
+
+def start_xvfb():
+    """Start Xvfb (X Virtual Framebuffer) for headless rendering"""
+    global _xvfb_process
+    
+    # Check if current DISPLAY is accessible
+    current_display = os.environ.get('DISPLAY', '')
+    if current_display and check_display_available(current_display):
+        print(f"✓ Using existing X display: {current_display}")
+        return True
+    
+    # Find an available display
+    display = find_available_display()
+    
+    try:
+        print(f"Starting Xvfb on display {display}...")
+        _xvfb_process = subprocess.Popen(
+            ['Xvfb', display, '-screen', '0', '1920x1080x24'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        
+        # Set the DISPLAY environment variable
+        os.environ['DISPLAY'] = display
+        
+        # Wait a moment for Xvfb to start
+        import time
+        time.sleep(1)
+        
+        # Verify it's working
+        if check_display_available(display):
+            print(f"✓ Xvfb started successfully on display {display}")
+            
+            # Register cleanup
+            atexit.register(stop_xvfb)
+            return True
+        else:
+            print(f"✗ Failed to verify Xvfb on display {display}")
+            stop_xvfb()
+            return False
+            
+    except FileNotFoundError:
+        print("✗ Error: Xvfb not found. Please install: apt-get install xvfb")
+        return False
+    except Exception as e:
+        print(f"✗ Error starting Xvfb: {e}")
+        return False
+
+
+def stop_xvfb():
+    """Stop the Xvfb process"""
+    global _xvfb_process
+    if _xvfb_process:
+        try:
+            _xvfb_process.terminate()
+            _xvfb_process.wait(timeout=5)
+            print("✓ Xvfb stopped")
+        except Exception as e:
+            print(f"Warning: Error stopping Xvfb: {e}")
+            try:
+                _xvfb_process.kill()
+            except:
+                pass
+        finally:
+            _xvfb_process = None
 
 
 class GaitEditorApp:
@@ -336,6 +438,12 @@ def create_default_docking_splits():
 
 def main():
     """Application entry point"""
+    # Ensure X display is available
+    if not start_xvfb():
+        print("ERROR: Failed to initialize X display")
+        print("Please ensure Xvfb is installed or X11 forwarding is configured")
+        sys.exit(1)
+    
     app = GaitEditorApp()
     
     # Configure Hello ImGui

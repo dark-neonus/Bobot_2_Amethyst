@@ -14,7 +14,16 @@ A lightweight, fast, and modular Python-based visual editor for designing gait p
 ## Installation
 
 1. Install Python 3.10 or higher
-2. Install dependencies:
+2. Install system dependencies (for dev containers/headless environments):
+
+```bash
+# Debian/Ubuntu
+apt-get update && apt-get install -y xvfb
+
+# The application will automatically use Xvfb for headless rendering
+```
+
+3. Install Python dependencies:
 
 ```bash
 pip install -r requirements.txt
@@ -26,6 +35,31 @@ Run the application:
 
 ```bash
 python main.py
+```
+
+The application automatically handles X11 display setup:
+- ✅ Detects if X display is available
+- ✅ Auto-starts Xvfb virtual framebuffer if needed
+- ✅ Works in dev containers, SSH sessions, and headless environments
+- ✅ Cleans up resources on exit
+
+**Viewing the GUI (from dev container/Windows):**
+
+Xvfb is virtual (headless) by default. To see the actual window:
+
+```bash
+# Start VNC server
+./start_vnc_tiger.sh
+
+# Then open in browser: http://localhost:6080/vnc.html
+# Click "Connect" and run in another terminal:
+export DISPLAY=:99
+python main.py
+```
+
+**Testing the display fix:**
+```bash
+python test_display_fix.py
 ```
 
 ### Controls
@@ -112,6 +146,35 @@ LegsEditor/
 ## Development
 
 This project follows a "vibecoding" approach - prioritizing rapid iteration, minimal boilerplate, and high interactivity.
+
+## Troubleshooting
+
+### GLFW Error: Failed to open display
+
+**Error:**
+```
+Glfw Error 65544: X11: Failed to open display :4
+RuntimeError: IM_ASSERT( glfwInitSuccess )
+```
+
+**Solution:**
+This error occurs when no X server is available. The application now automatically handles this by starting Xvfb. If you still encounter issues:
+
+1. Ensure Xvfb is installed:
+   ```bash
+   apt-get install xvfb
+   ```
+
+2. Check the logs in `logs.md` for detailed troubleshooting steps
+
+3. Verify the fix is working:
+   ```bash
+   python test_display_fix.py
+   ```
+
+### OpenGL Rendering Errors
+
+If you see `GL_INVALID_VALUE` errors, these are separate from the GLFW initialization and indicate issues in the viewport rendering code (`gui/viewport.py`). The application should still run despite these warnings.
 
 ## License
 

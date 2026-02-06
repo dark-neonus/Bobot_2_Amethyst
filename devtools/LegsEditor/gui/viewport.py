@@ -157,7 +157,9 @@ class Viewport:
         if error != 'GL_NO_ERROR':
             print(f"OpenGL Error before rendering: {error}")
         
-        self.ctx.line_width = 2.0
+        # Note: In OpenGL 3.3+ core profile, line_width only accepts 1.0
+        # For thicker lines, use geometry shaders or instanced rendering
+        # self.ctx.line_width = 1.0  # Default, no need to set
         
         # Setup matrices
         aspect = self.width / self.height
