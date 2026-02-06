@@ -1,0 +1,4 @@
+imgui-bundle>=1.2.0
+moderngl>=5.8.0
+numpy>=1.24.0
+pyglm>=2.7.0

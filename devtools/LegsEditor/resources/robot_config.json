@@ -1,0 +1,26 @@
+{
+  "body": {
+    "length_mm": 120.0,
+    "width_mm": 120.0,
+    "height_mm": 40.0
+  },
+  "legs": {
+    "count": 4,
+    "mounting_points": [
+      {"id": 0, "name": "FrontRight", "x": 60, "y": 0, "z": 60, "base_rotation": 45},
+      {"id": 1, "name": "BackRight", "x": -60, "y": 0, "z": 60, "base_rotation": 135},
+      {"id": 2, "name": "BackLeft", "x": -60, "y": 0, "z": -60, "base_rotation": 225},
+      {"id": 3, "name": "FrontLeft", "x": 60, "y": 0, "z": -60, "base_rotation": 315}
+    ],
+    "segments": {
+      "coxa_len_mm": 40.0,
+      "femur_len_mm": 80.0,
+      "tibia_len_mm": 120.0
+    },
+    "joints": [
+      {"id": 1, "name": "Coxa", "axis": "y", "min": 0, "max": 180},
+      {"id": 2, "name": "Femur", "axis": "z", "min": 0, "max": 180},
+      {"id": 3, "name": "Tibia", "axis": "z", "min": 0, "max": 180}
+    ]
+  }
+}
