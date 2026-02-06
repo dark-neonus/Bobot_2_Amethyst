@@ -38,6 +38,57 @@ class Camera:
         near = 1.0
         far = 10000.0
         return glm.perspective(fov, aspect_ratio, near, far)
+    
+    def orbit(self, delta_azimuth, delta_elevation):
+        """Rotate camera around target"""
+        self.azimuth += delta_azimuth
+        self.elevation += delta_elevation
+        
+        # Clamp elevation to avoid gimbal lock
+        self.elevation = max(-89.0, min(89.0, self.elevation))
+        
+        # Wrap azimuth
+        while self.azimuth > 360.0:
+            self.azimuth -= 360.0
+        while self.azimuth < 0.0:
+            self.azimuth += 360.0
+    
+    def zoom(self, delta):
+        """Zoom camera in/out"""
+        self.distance -= delta * 20.0
+        self.distance = max(50.0, min(2000.0, self.distance))
+    
+    def pan(self, delta_x, delta_y):
+        """Pan camera target"""
+        import math
+        
+        # Convert angles to radians
+        az_rad = math.radians(self.azimuth)
+        
+        # Calculate right and up vectors
+        right_x = math.cos(az_rad + math.pi / 2)
+        right_z = math.sin(az_rad + math.pi / 2)
+        
+        # Pan speed based on distance
+        speed = self.distance * 0.001
+        
+        # Update target
+        self.target.x += (right_x * delta_x - math.cos(az_rad) * delta_y) * speed
+        self.target.z += (right_z * delta_x - math.sin(az_rad) * delta_y) * speed
+    
+    def snap_to_view(self, view_name):
+        """Snap camera to predefined view"""
+        views = {
+            "front": (0.0, 0.0),
+            "back": (180.0, 0.0),
+            "left": (-90.0, 0.0),
+            "right": (90.0, 0.0),
+            "top": (0.0, 89.0),
+            "bottom": (0.0, -89.0),
+        }
+        
+        if view_name in views:
+            self.azimuth, self.elevation = views[view_name]
 
 
 class Viewport:

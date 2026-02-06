@@ -230,86 +230,171 @@ class GaitEditorApp:
         
         if avail.x > 0 and avail.y > 0:
             # Get window position for rendering
-            win_pos = imgui.get_window_pos()
             cursor_pos = imgui.get_cursor_screen_pos()
             
             # Reserve space in ImGui
             imgui.dummy(imgui.ImVec2(avail.x, avail.y))
             
-            # Render text as placeholder for now
+            # Draw background
             draw_list = imgui.get_window_draw_list()
             draw_list.add_rect_filled(
                 imgui.ImVec2(cursor_pos.x, cursor_pos.y),
                 imgui.ImVec2(cursor_pos.x + avail.x, cursor_pos.y + avail.y),
-                imgui.color_convert_float4_to_u32(imgui.ImVec4(0.2, 0.2, 0.25, 1.0))
+                imgui.color_convert_float4_to_u32(imgui.ImVec4(0.15, 0.15, 0.18, 1.0))
             )
             
-            # Draw some test graphics
             if self.viewport:
                 leg_positions = self.kinematics.calculate_all_legs(self.state.current_pose)
                 body_corners = self.kinematics.get_body_corners()
                 
-                # Draw debug info as text for now
-                text_x = cursor_pos.x + 10
-                text_y = cursor_pos.y + 10
-                draw_list.add_text(
-                    imgui.ImVec2(text_x, text_y),
-                    imgui.color_convert_float4_to_u32(imgui.ImVec4(1, 1, 1, 1)),
-                    f"3D Viewport - PyOpenGL context issue"
-                )
-                draw_list.add_text(
-                    imgui.ImVec2(text_x, text_y + 20),
-                    imgui.color_convert_float4_to_u32(imgui.ImVec4(1, 1, 0, 1)),
-                    f"Legs: {len(leg_positions)}, Body corners: {len(body_corners)}"
-                )
-                draw_list.add_text(
-                    imgui.ImVec2(text_x, text_y + 40),
-                    imgui.color_convert_float4_to_u32(imgui.ImVec4(0, 1, 1, 1)),
-                    f"Camera: dist={self.viewport.camera.distance:.0f} az={self.viewport.camera.azimuth:.0f}"
-                )
+                # Render 3D scene with perspective projection
+                self._render_3d_scene(draw_list, cursor_pos, avail, leg_positions, body_corners)
                 
-                # Draw a simple 2D representation of the robot
-                center_x = cursor_pos.x + avail.x / 2
-                center_y = cursor_pos.y + avail.y / 2
-                scale = 0.5
-                
-                # Draw body as rectangle (simplified top-down view)
-                body_w = 120 * scale
-                body_h = 120 * scale
-                draw_list.add_rect(
-                    imgui.ImVec2(center_x - body_w/2, center_y - body_h/2),
-                    imgui.ImVec2(center_x + body_w/2, center_y + body_h/2),
-                    imgui.color_convert_float4_to_u32(imgui.ImVec4(0, 1, 1, 1)),
-                    0, 0, 2.0
-                )
-                
-                # Draw legs as lines from body corners
-                for leg_id, positions in leg_positions.items():
-                    if positions and len(positions) >= 2:
-                        start = positions[0]
-                        end = positions[-1]
-                        
-                        # Project 3D to 2D (simple top-down)
-                        start_x = center_x + start[0] * scale
-                        start_y = center_y + start[2] * scale
-                        end_x = center_x + end[0] * scale
-                        end_y = center_y + end[2] * scale
-                        
-                        # Draw leg
-                        draw_list.add_line(
-                            imgui.ImVec2(start_x, start_y),
-                            imgui.ImVec2(end_x, end_y),
-                            imgui.color_convert_float4_to_u32(imgui.ImVec4(1, 1, 0, 1)),
-                            2.0
-                        )
-                        # Draw foot
-                        draw_list.add_circle_filled(
-                            imgui.ImVec2(end_x, end_y),
-                            4.0,
-                            imgui.color_convert_float4_to_u32(imgui.ImVec4(1, 0, 0, 1))
-                        )
+            # Handle camera controls
+            if imgui.is_item_hovered():
+                self.handle_viewport_input()
         else:
             imgui.text("Viewport area too small")
+    
+    def _project_3d_to_2d(self, point, camera, screen_center, screen_width, screen_height):
+        """Project a 3D point to 2D screen coordinates with perspective"""
+        import math
+        
+        # Camera parameters
+        distance = camera.distance
+        azimuth = math.radians(camera.azimuth)
+        elevation = math.radians(camera.elevation)
+        
+        # Calculate camera position
+        cam_x = distance * math.cos(elevation) * math.cos(azimuth)
+        cam_y = distance * math.sin(elevation)
+        cam_z = distance * math.cos(elevation) * math.sin(azimuth)
+        
+        # Transform point to camera space
+        dx = point[0] - 0
+        dy = point[1] - 0
+        dz = point[2] - 0
+        
+        # Rotate around Y axis (azimuth)
+        cos_az = math.cos(-azimuth)
+        sin_az = math.sin(-azimuth)
+        tx = dx * cos_az - dz * sin_az
+        tz = dx * sin_az + dz * cos_az
+        ty = dy
+        
+        # Rotate around X axis (elevation)
+        cos_el = math.cos(-elevation)
+        sin_el = math.sin(-elevation)
+        ty2 = ty * cos_el - tz * sin_el
+        tz2 = ty * sin_el + tz * cos_el
+        tx2 = tx
+        
+        # Translate by camera distance
+        tz2 += distance
+        
+        # Perspective projection
+        if tz2 > 0.1:  # Avoid division by zero
+            fov = 45.0  # Field of view in degrees
+            scale = (screen_height / 2.0) / math.tan(math.radians(fov / 2.0))
+            
+            screen_x = screen_center[0] + (tx2 * scale / tz2)
+            screen_y = screen_center[1] - (ty2 * scale / tz2)
+            return (screen_x, screen_y, tz2)  # Return depth for visibility testing
+        
+        return None
+    
+    def _render_3d_scene(self, draw_list, cursor_pos, avail, leg_positions, body_corners):
+        """Render 3D scene using 2D primitives with perspective projection"""
+        screen_center = (cursor_pos.x + avail.x / 2, cursor_pos.y + avail.y / 2)
+        
+        # Draw grid
+        self._draw_3d_grid(draw_list, screen_center, avail.x, avail.y)
+        
+        # Draw body
+        if body_corners:
+            self._draw_3d_body(draw_list, body_corners, screen_center, avail.x, avail.y)
+        
+        # Draw legs
+        if leg_positions:
+            self._draw_3d_legs(draw_list, leg_positions, screen_center, avail.x, avail.y)
+    
+    def _draw_3d_grid(self, draw_list, screen_center, width, height):
+        """Draw 3D ground grid"""
+        grid_size = 500
+        grid_step = 50
+        
+        lines = []
+        for i in range(-grid_size, grid_size + grid_step, grid_step):
+            # Lines parallel to X axis
+            lines.append((i, 0, -grid_size, i, 0, grid_size))
+            # Lines parallel to Z axis
+            lines.append((-grid_size, 0, i, grid_size, 0, i))
+        
+        for x1, y1, z1, x2, y2, z2 in lines:
+            p1 = self._project_3d_to_2d((x1, y1, z1), self.viewport.camera, screen_center, width, height)
+            p2 = self._project_3d_to_2d((x2, y2, z2), self.viewport.camera, screen_center, width, height)
+            
+            if p1 and p2:
+                draw_list.add_line(
+                    imgui.ImVec2(p1[0], p1[1]),
+                    imgui.ImVec2(p2[0], p2[1]),
+                    imgui.color_convert_float4_to_u32(imgui.ImVec4(0.3, 0.3, 0.35, 1.0)),
+                    1.0
+                )
+    
+    def _draw_3d_body(self, draw_list, corners, screen_center, width, height):
+        """Draw 3D robot body"""
+        # Define body edges (cube)
+        edges = [
+            (0, 1), (1, 2), (2, 3), (3, 0),  # Bottom face
+            (4, 5), (5, 6), (6, 7), (7, 4),  # Top face
+            (0, 4), (1, 5), (2, 6), (3, 7),  # Vertical edges
+        ]
+        
+        for i, j in edges:
+            p1 = self._project_3d_to_2d(corners[i], self.viewport.camera, screen_center, width, height)
+            p2 = self._project_3d_to_2d(corners[j], self.viewport.camera, screen_center, width, height)
+            
+            if p1 and p2:
+                draw_list.add_line(
+                    imgui.ImVec2(p1[0], p1[1]),
+                    imgui.ImVec2(p2[0], p2[1]),
+                    imgui.color_convert_float4_to_u32(imgui.ImVec4(0.0, 1.0, 1.0, 1.0)),
+                    2.0
+                )
+    
+    def _draw_3d_legs(self, draw_list, leg_positions, screen_center, width, height):
+        """Draw 3D robot legs"""
+        for leg_id, positions in leg_positions.items():
+            if not positions or len(positions) < 2:
+                continue
+            
+            # Draw leg segments
+            for i in range(len(positions) - 1):
+                p1 = self._project_3d_to_2d(positions[i], self.viewport.camera, screen_center, width, height)
+                p2 = self._project_3d_to_2d(positions[i + 1], self.viewport.camera, screen_center, width, height)
+                
+                if p1 and p2:
+                    # Color gradient from yellow to red
+                    t = i / (len(positions) - 1)
+                    r, g, b = 1.0, 1.0 - t * 0.5, 0.0
+                    
+                    draw_list.add_line(
+                        imgui.ImVec2(p1[0], p1[1]),
+                        imgui.ImVec2(p2[0], p2[1]),
+                        imgui.color_convert_float4_to_u32(imgui.ImVec4(r, g, b, 1.0)),
+                        2.0
+                    )
+            
+            # Draw foot as circle
+            foot_pos = positions[-1]
+            p_foot = self._project_3d_to_2d(foot_pos, self.viewport.camera, screen_center, width, height)
+            if p_foot:
+                draw_list.add_circle_filled(
+                    imgui.ImVec2(p_foot[0], p_foot[1]),
+                    5.0,
+                    imgui.color_convert_float4_to_u32(imgui.ImVec4(1.0, 0.0, 0.0, 1.0))
+                )
     
     def handle_viewport_input(self):
         """Handle mouse input for viewport camera control"""
