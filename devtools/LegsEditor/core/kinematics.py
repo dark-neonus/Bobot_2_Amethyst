@@ -28,9 +28,9 @@ class LegKinematics:
         Args:
             mount_pos: (x, y, z) mounting point on body
             base_rotation: Base rotation of the leg in degrees
-            j1_angle: Coxa joint angle (0-180, horizontal rotation)
-            j2_angle: Femur joint angle (0-180, vertical rotation)
-            j3_angle: Tibia joint angle (0-180, vertical rotation)
+            j1_angle: Coxa joint angle (0-180, rotates around Y axis)
+            j2_angle: Femur joint angle (0-180, rotates around local Z axis)
+            j3_angle: Tibia joint angle (0-180, rotates around local Z axis)
         
         Returns:
             List of positions: [mount, j1, j2, j3, tip]
@@ -42,44 +42,49 @@ class LegKinematics:
         positions.append(pos.copy())
         
         # Convert angles from degrees to radians
-        # Servo angles are 0-180, convert to -90 to 90 for symmetry
+        # Servo angles are 0-180, convert to -90 to 90 for symmetry around 90°
         base_rad = math.radians(base_rotation)
-        j1_rad = math.radians(j1_angle - 90)  # Center at 90
-        j2_rad = math.radians(j2_angle - 90)
-        j3_rad = math.radians(j3_angle - 90)
+        j1_rad = math.radians(j1_angle - 90)  # Coxa: rotates around Y axis
+        j2_rad = math.radians(j2_angle - 90)  # Femur: rotates around local Z 
+        j3_rad = math.radians(j3_angle - 90)  # Tibia: rotates around local Z
         
-        # Combine base rotation with j1 (coxa) rotation
+        # Joint 1 (Coxa) - horizontal rotation around Y axis
+        # Combined with base rotation gives total horizontal angle
         total_yaw = base_rad + j1_rad
         
-        # Joint 1 (Coxa) - horizontal rotation from base
-        # Move along the horizontal plane
+        # Coxa extends horizontally
         j1_pos = pos + np.array([
             self.coxa_len * math.cos(total_yaw),
-            0,
+            0,  # No vertical change
             self.coxa_len * math.sin(total_yaw)
         ])
         positions.append(j1_pos.copy())
         
-        # Joint 2 (Femur) - vertical rotation
-        # Direction in horizontal plane
-        direction = np.array([math.cos(total_yaw), 0, math.sin(total_yaw)])
+        # Joint 2 (Femur) - rotates around local Z axis (perpendicular to leg direction)
+        # This creates vertical motion
+        # Direction in XZ plane (horizontal)
+        horiz_dir = np.array([math.cos(total_yaw), 0, math.sin(total_yaw)])
         
-        # Femur rotation affects vertical position
+        # Femur pitch affects both horizontal reach and vertical position
         j2_pos = j1_pos + np.array([
             self.femur_len * math.cos(total_yaw) * math.cos(j2_rad),
-            -self.femur_len * math.sin(j2_rad),  # Y is up, negative is down
+            -self.femur_len * math.sin(j2_rad),  # Negative Y is down
             self.femur_len * math.sin(total_yaw) * math.cos(j2_rad)
         ])
         positions.append(j2_pos.copy())
         
-        # Joint 3 (Tibia) - vertical rotation (cumulative with femur)
+        # Joint 3 (Tibia) - also rotates around local Z axis
+        # Cumulative pitch with femur
         cumulative_pitch = j2_rad + j3_rad
+        
         j3_pos = j2_pos + np.array([
             self.tibia_len * math.cos(total_yaw) * math.cos(cumulative_pitch),
             -self.tibia_len * math.sin(cumulative_pitch),
             self.tibia_len * math.sin(total_yaw) * math.cos(cumulative_pitch)
         ])
         positions.append(j3_pos.copy())
+        
+        return positions
         
         return positions
 

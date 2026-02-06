@@ -135,6 +135,9 @@ class GaitEditorApp:
         self.state = AppState()
         self.state.initialize_default_pose(self.config.get_all_servo_names())
         
+        # Selection state
+        self.selected_joint = None  # Format: (leg_id, joint_index) or None
+        
         # Initialize kinematics
         self.kinematics = RobotKinematics(self.config)
         
@@ -232,8 +235,10 @@ class GaitEditorApp:
             # Get window position for rendering
             cursor_pos = imgui.get_cursor_screen_pos()
             
-            # Reserve space in ImGui
-            imgui.dummy(imgui.ImVec2(avail.x, avail.y))
+            # Reserve space in ImGui and make it interactive
+            imgui.invisible_button("viewport_area", imgui.ImVec2(avail.x, avail.y))
+            is_hovered = imgui.is_item_hovered()
+            is_clicked = imgui.is_item_clicked(imgui.MouseButton_.left)
             
             # Draw background
             draw_list = imgui.get_window_draw_list()
@@ -247,11 +252,19 @@ class GaitEditorApp:
                 leg_positions = self.kinematics.calculate_all_legs(self.state.current_pose)
                 body_corners = self.kinematics.get_body_corners()
                 
+                # Handle joint selection
+                if is_clicked:
+                    mouse_pos = imgui.get_mouse_pos()
+                    self._handle_joint_selection(mouse_pos, cursor_pos, avail, leg_positions)
+                
                 # Render 3D scene with perspective projection
                 self._render_3d_scene(draw_list, cursor_pos, avail, leg_positions, body_corners)
                 
+                # Draw orientation axes in top-right corner
+                self._draw_orientation_cube(draw_list, cursor_pos, avail)
+                
             # Handle camera controls
-            if imgui.is_item_hovered():
+            if is_hovered:
                 self.handle_viewport_input()
         else:
             imgui.text("Viewport area too small")
@@ -364,56 +377,314 @@ class GaitEditorApp:
                 )
     
     def _draw_3d_legs(self, draw_list, leg_positions, screen_center, width, height):
-        """Draw 3D robot legs"""
+        """Draw 3D robot legs as solid rectangular tubes"""
+        import math
+        import numpy as np
+        
+        leg_width = 18.0   # Width of leg in mm (3D space)
+        leg_height = 12.0  # Height/thickness of leg in mm (3D space)
+        
         for leg_id, positions in leg_positions.items():
             if not positions or len(positions) < 2:
                 continue
             
-            # Draw leg segments
+            # Draw leg segments as 3D rectangular tubes
             for i in range(len(positions) - 1):
-                p1 = self._project_3d_to_2d(positions[i], self.viewport.camera, screen_center, width, height)
-                p2 = self._project_3d_to_2d(positions[i + 1], self.viewport.camera, screen_center, width, height)
+                p1_3d = np.array(positions[i])
+                p2_3d = np.array(positions[i + 1])
                 
-                if p1 and p2:
-                    # Color gradient from yellow to red
-                    t = i / (len(positions) - 1)
-                    r, g, b = 1.0, 1.0 - t * 0.5, 0.0
+                # Calculate leg direction vector
+                leg_dir = p2_3d - p1_3d
+                leg_length = np.linalg.norm(leg_dir)
+                
+                if leg_length > 0.1:
+                    leg_dir = leg_dir / leg_length
                     
-                    draw_list.add_line(
-                        imgui.ImVec2(p1[0], p1[1]),
-                        imgui.ImVec2(p2[0], p2[1]),
-                        imgui.color_convert_float4_to_u32(imgui.ImVec4(r, g, b, 1.0)),
-                        2.0
-                    )
+                    # Calculate two perpendicular vectors to create rectangular cross-section
+                    # Use world up vector (Y-axis) to keep cross-section consistent
+                    world_up = np.array([0.0, 1.0, 0.0])
+                    
+                    # First perpendicular: perpendicular to leg in horizontal plane
+                    # This keeps the leg "width" horizontal
+                    perp_width = np.cross(world_up, leg_dir)
+                    perp_width_len = np.linalg.norm(perp_width)
+                    
+                    if perp_width_len > 0.01:
+                        perp_width = perp_width / perp_width_len * (leg_width / 2.0)
+                    else:
+                        # Leg is vertical, use X-axis
+                        perp_width = np.array([leg_width / 2.0, 0.0, 0.0])
+                    
+                    # Second perpendicular: perpendicular to both leg and width
+                    # This is the "height" dimension
+                    perp_height = np.cross(leg_dir, perp_width)
+                    perp_height_len = np.linalg.norm(perp_height)
+                    if perp_height_len > 0.01:
+                        perp_height = perp_height / perp_height_len * (leg_height / 2.0)
+                    else:
+                        perp_height = np.array([0.0, leg_height / 2.0, 0.0])
+                    
+                    # Create 8 corners of rectangular prism in 3D
+                    # Bottom face (4 corners)
+                    c1_3d = p1_3d + perp_width - perp_height
+                    c2_3d = p2_3d + perp_width - perp_height
+                    c3_3d = p2_3d - perp_width - perp_height
+                    c4_3d = p1_3d - perp_width - perp_height
+                    
+                    # Top face (4 corners)
+                    c5_3d = p1_3d + perp_width + perp_height
+                    c6_3d = p2_3d + perp_width + perp_height
+                    c7_3d = p2_3d - perp_width + perp_height
+                    c8_3d = p1_3d - perp_width + perp_height
+                    
+                    # Project all 8 corners to 2D
+                    corners_3d = [c1_3d, c2_3d, c3_3d, c4_3d, c5_3d, c6_3d, c7_3d, c8_3d]
+                    corners_2d = []
+                    for c in corners_3d:
+                        proj = self._project_3d_to_2d(c, self.viewport.camera, screen_center, width, height)
+                        if proj:
+                            corners_2d.append(proj)
+                        else:
+                            corners_2d.append(None)
+                    
+                    # Check if all corners projected successfully
+                    if None not in corners_2d:
+                        # Base color gradient from yellow to red
+                        t = i / (len(positions) - 1)
+                        base_r, base_g, base_b = 1.0, 1.0 - t * 0.5, 0.0
+                        
+                        # Check if this segment is selected
+                        is_selected = self.selected_joint == (leg_id, i)
+                        if is_selected:
+                            base_r, base_g, base_b = 0.0, 1.0, 0.0
+                        
+                        # Get camera direction for depth sorting
+                        cam_dir = self.viewport.camera.get_view_direction()
+                        
+                        # Define all 6 faces with proper winding order (counter-clockwise when viewed from outside)
+                        faces = [
+                            # Each face: [4 corner indices], shade multiplier
+                            ([0, 1, 2, 3], 0.7),   # Bottom face
+                            ([4, 5, 6, 7], 1.0),   # Top face
+                            ([0, 1, 5, 4], 0.85),  # Right face  
+                            ([3, 2, 6, 7], 0.85),  # Left face
+                            ([1, 2, 6, 5], 0.9),   # Front face
+                            ([0, 4, 7, 3], 0.75),  # Back face
+                        ]
+                        
+                        # Calculate depth for each face and sort
+                        face_data = []
+                        for face_indices, base_shade in faces:
+                            # Calculate face center depth
+                            center_3d = sum([corners_3d[idx] for idx in face_indices]) / 4.0
+                            depth = np.dot(center_3d, cam_dir)
+                            face_data.append((depth, face_indices, base_shade))
+                        
+                        # Sort by depth (draw far faces first - painter's algorithm)
+                        face_data.sort(key=lambda x: x[0])
+                        
+                        # Draw all faces (no backface culling)
+                        for depth, face_indices, base_shade in face_data:
+                            r, g, b = base_r * base_shade, base_g * base_shade, base_b * base_shade
+                            
+                            # Get the 4 corners of this face
+                            c = [corners_2d[idx] for idx in face_indices]
+                            
+                            # Draw as two triangles to form a solid quad
+                            fill_color = imgui.color_convert_float4_to_u32(imgui.ImVec4(r, g, b, 1.0))
+                            draw_list.add_triangle_filled(
+                                imgui.ImVec2(c[0][0], c[0][1]),
+                                imgui.ImVec2(c[1][0], c[1][1]),
+                                imgui.ImVec2(c[2][0], c[2][1]),
+                                fill_color
+                            )
+                            draw_list.add_triangle_filled(
+                                imgui.ImVec2(c[0][0], c[0][1]),
+                                imgui.ImVec2(c[2][0], c[2][1]),
+                                imgui.ImVec2(c[3][0], c[3][1]),
+                                fill_color
+                            )
+                        
+                        # Draw all edges for solid look
+                        edge_color = imgui.color_convert_float4_to_u32(imgui.ImVec4(0.1, 0.1, 0.1, 0.8))
+                        edges = [
+                            (0, 1), (1, 2), (2, 3), (3, 0),  # Bottom face
+                            (4, 5), (5, 6), (6, 7), (7, 4),  # Top face
+                            (0, 4), (1, 5), (2, 6), (3, 7),  # Vertical edges
+                        ]
+                        for idx1, idx2 in edges:
+                            draw_list.add_line(
+                                imgui.ImVec2(corners_2d[idx1][0], corners_2d[idx1][1]),
+                                imgui.ImVec2(corners_2d[idx2][0], corners_2d[idx2][1]),
+                                edge_color, 1.2
+                            )
             
-            # Draw foot as circle
-            foot_pos = positions[-1]
-            p_foot = self._project_3d_to_2d(foot_pos, self.viewport.camera, screen_center, width, height)
-            if p_foot:
-                draw_list.add_circle_filled(
-                    imgui.ImVec2(p_foot[0], p_foot[1]),
-                    5.0,
-                    imgui.color_convert_float4_to_u32(imgui.ImVec4(1.0, 0.0, 0.0, 1.0))
-                )
+            # Draw joints as circles
+            for i, pos_3d in enumerate(positions):
+                p_joint = self._project_3d_to_2d(pos_3d, self.viewport.camera, screen_center, width, height)
+                if p_joint:
+                    is_selected = self.selected_joint == (leg_id, i)
+                    radius = 6.0 if is_selected else 4.0
+                    
+                    if i == 0:
+                        # Base joint - cyan
+                        color = imgui.ImVec4(0.0, 1.0, 1.0, 1.0)
+                    elif i == len(positions) - 1:
+                        # Foot - red or green if selected
+                        color = imgui.ImVec4(0.0, 1.0, 0.0, 1.0) if is_selected else imgui.ImVec4(1.0, 0.0, 0.0, 1.0)
+                    else:
+                        # Middle joint - yellow or green if selected
+                        color = imgui.ImVec4(0.0, 1.0, 0.0, 1.0) if is_selected else imgui.ImVec4(1.0, 1.0, 0.0, 1.0)
+                    
+                    draw_list.add_circle_filled(
+                        imgui.ImVec2(p_joint[0], p_joint[1]),
+                        radius,
+                        imgui.color_convert_float4_to_u32(color)
+                    )
+                    
+                    # Draw outline for selected joint
+                    if is_selected:
+                        draw_list.add_circle(
+                            imgui.ImVec2(p_joint[0], p_joint[1]),
+                            radius + 2.0,
+                            imgui.color_convert_float4_to_u32(imgui.ImVec4(1.0, 1.0, 1.0, 1.0)),
+                            0,
+                            2.0
+                        )
+    
+    def _draw_orientation_cube(self, draw_list, cursor_pos, avail):
+        """Draw orientation axes in top-right corner"""
+        import math
+        
+        # Position in top-right corner
+        cube_size = 60
+        margin = 15
+        cube_center_x = cursor_pos.x + avail.x - cube_size - margin
+        cube_center_y = cursor_pos.y + margin + cube_size // 2
+        
+        # Draw background circle
+        draw_list.add_circle_filled(
+            imgui.ImVec2(cube_center_x, cube_center_y),
+            cube_size // 2 + 5,
+            imgui.color_convert_float4_to_u32(imgui.ImVec4(0.1, 0.1, 0.12, 0.8))
+        )
+        
+        # Get camera rotation
+        azimuth = math.radians(self.viewport.camera.azimuth)
+        elevation = math.radians(self.viewport.camera.elevation)
+        
+        # Axis vectors in world space
+        axes = [
+            ((1, 0, 0), (1.0, 0.0, 0.0), "X"),  # Red
+            ((0, 1, 0), (0.0, 1.0, 0.0), "Y"),  # Green
+            ((0, 0, 1), (0.0, 0.0, 1.0), "Z"),  # Blue
+        ]
+        
+        axis_length = 25
+        
+        # Sort axes by depth (back to front)
+        axes_with_depth = []
+        for axis_vec, color, label in axes:
+            # Rotate axis vector
+            x, y, z = axis_vec
+            
+            # Rotate around Y (azimuth)
+            cos_az = math.cos(-azimuth)
+            sin_az = math.sin(-azimuth)
+            tx = x * cos_az - z * sin_az
+            tz = x * sin_az + z * cos_az
+            ty = y
+            
+            # Rotate around X (elevation)
+            cos_el = math.cos(-elevation)
+            sin_el = math.sin(-elevation)
+            ty2 = ty * cos_el - tz * sin_el
+            tz2 = ty * sin_el + tz * cos_el
+            
+            axes_with_depth.append((tz2, tx, ty2, color, label))
+        
+        # Sort by depth (draw back axes first)
+        axes_with_depth.sort()
+        
+        # Draw axes
+        for depth, tx, ty, color, label in axes_with_depth:
+            # Project to 2D
+            screen_x = cube_center_x + tx * axis_length
+            screen_y = cube_center_y - ty * axis_length
+            
+            # Make back-facing axes dimmer
+            alpha = 1.0 if depth > 0 else 0.3
+            
+            # Draw axis line
+            draw_list.add_line(
+                imgui.ImVec2(cube_center_x, cube_center_y),
+                imgui.ImVec2(screen_x, screen_y),
+                imgui.color_convert_float4_to_u32(imgui.ImVec4(color[0], color[1], color[2], alpha)),
+                3.0
+            )
+            
+            # Draw axis label
+            label_offset = 8
+            text_x = screen_x + (screen_x - cube_center_x) / axis_length * label_offset
+            text_y = screen_y + (screen_y - cube_center_y) / axis_length * label_offset
+            
+            draw_list.add_text(
+                imgui.ImVec2(text_x - 5, text_y - 8),
+                imgui.color_convert_float4_to_u32(imgui.ImVec4(color[0], color[1], color[2], alpha)),
+                label
+            )
+    
+    def _handle_joint_selection(self, mouse_pos, cursor_pos, avail, leg_positions):
+        """Handle clicking on joints to select them"""
+        screen_center = (cursor_pos.x + avail.x / 2, cursor_pos.y + avail.y / 2)
+        click_threshold = 10.0  # Pixels
+        
+        closest_joint = None
+        closest_distance = float('inf')
+        
+        # Check all joints
+        for leg_id, positions in leg_positions.items():
+            for i, pos_3d in enumerate(positions):
+                p_joint = self._project_3d_to_2d(pos_3d, self.viewport.camera, screen_center, avail.x, avail.y)
+                if p_joint:
+                    import math
+                    dx = mouse_pos.x - p_joint[0]
+                    dy = mouse_pos.y - p_joint[1]
+                    distance = math.sqrt(dx*dx + dy*dy)
+                    
+                    if distance < click_threshold and distance < closest_distance:
+                        closest_distance = distance
+                        closest_joint = (leg_id, i)
+        
+        # Update selection
+        if closest_joint:
+            self.selected_joint = closest_joint
+            print(f"Selected: Leg {closest_joint[0]}, Joint {closest_joint[1]}")
+        else:
+            self.selected_joint = None
     
     def handle_viewport_input(self):
         """Handle mouse input for viewport camera control"""
         io = imgui.get_io()
         
-        # Orbit: Shift + Middle Mouse
-        if io.key_shift and imgui.is_mouse_dragging(imgui.MouseButton_.middle):
-            delta = imgui.get_mouse_drag_delta(imgui.MouseButton_.middle)
-            imgui.reset_mouse_drag_delta(imgui.MouseButton_.middle)
-            self.viewport.camera.orbit(delta.x * 0.5, -delta.y * 0.5)
+        # Orbit: Right Mouse Button drag OR Middle Mouse Button drag
+        if imgui.is_mouse_dragging(imgui.MouseButton_.right) or (not io.key_shift and imgui.is_mouse_dragging(imgui.MouseButton_.middle)):
+            # Use right mouse button if dragging, otherwise middle
+            button = imgui.MouseButton_.right if imgui.is_mouse_dragging(imgui.MouseButton_.right) else imgui.MouseButton_.middle
+            delta = imgui.get_mouse_drag_delta(button)
+            imgui.reset_mouse_drag_delta(button)
+            if abs(delta.x) > 0 or abs(delta.y) > 0:
+                self.viewport.camera.orbit(-delta.x * 0.5, delta.y * 0.5)
         
-        # Pan: Middle Mouse
-        elif imgui.is_mouse_dragging(imgui.MouseButton_.middle):
+        # Pan: Shift + Middle Mouse OR Middle Mouse with Shift
+        elif io.key_shift and imgui.is_mouse_dragging(imgui.MouseButton_.middle):
             delta = imgui.get_mouse_drag_delta(imgui.MouseButton_.middle)
             imgui.reset_mouse_drag_delta(imgui.MouseButton_.middle)
-            self.viewport.camera.pan(-delta.x, delta.y)
+            if abs(delta.x) > 0 or abs(delta.y) > 0:
+                self.viewport.camera.pan(-delta.x, delta.y)
         
         # Zoom: Mouse Wheel
-        if io.mouse_wheel != 0:
+        if abs(io.mouse_wheel) > 0:
             self.viewport.camera.zoom(io.mouse_wheel)
     
     def gui_loop(self):

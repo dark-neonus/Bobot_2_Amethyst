@@ -88,8 +88,27 @@ class Camera:
         }
         
         if view_name in views:
-            self.azimuth, self.elevation = views[view_name]
-
+            self.azimuth, self.elevation = views[view_name]    
+    def get_view_direction(self):
+        """Get the normalized view direction vector from camera to target"""
+        import math
+        
+        # Convert to radians
+        az_rad = math.radians(self.azimuth)
+        el_rad = math.radians(self.elevation)
+        
+        # Calculate camera position
+        x = self.distance * math.cos(el_rad) * math.cos(az_rad)
+        y = self.distance * math.sin(el_rad)
+        z = self.distance * math.cos(el_rad) * math.sin(az_rad)
+        
+        # Direction is from camera to target (normalized)
+        view_dir = np.array([-x, -y, -z])
+        length = np.linalg.norm(view_dir)
+        if length > 0:
+            view_dir = view_dir / length
+        
+        return view_dir
 
 class Viewport:
     """3D Viewport using raw OpenGL"""
