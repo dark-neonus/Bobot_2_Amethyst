@@ -94,16 +94,29 @@ class TimelinePanel:
     
     def _render_timeline(self):
         """Render the timeline tracks and keyframes"""
+        # Use child window for scrolling
+        imgui.begin_child("timeline_scroll", imgui.ImVec2(0, 0), 
+                         imgui.ChildFlags_.none, 
+                         imgui.WindowFlags_.horizontal_scrollbar | imgui.WindowFlags_.always_vertical_scrollbar)
+        
         draw_list = imgui.get_window_draw_list()
         window_pos = imgui.get_cursor_screen_pos()
         window_size = imgui.get_content_region_avail()
         
         if window_size.x < 50 or window_size.y < 50:
+            imgui.end_child()
             return
         
+        # Calculate total height needed for all tracks
+        num_servos = self.config.leg_count * len(self.config.joints)
+        total_tracks_height = num_servos * self.track_height
+        
         # Calculate dimensions
-        timeline_width = window_size.x
-        timeline_height = window_size.y
+        timeline_width = max(window_size.x, self.state.duration * self.pixels_per_second)
+        timeline_height = self.ruler_height + total_tracks_height
+        
+        # Make space for content
+        imgui.dummy((timeline_width, timeline_height))
         
         # Render ruler
         ruler_end_y = window_pos.y + self.ruler_height
@@ -111,10 +124,12 @@ class TimelinePanel:
         
         # Render tracks
         tracks_start_y = ruler_end_y
-        self._render_tracks(draw_list, window_pos.x, tracks_start_y, timeline_width, timeline_height - self.ruler_height)
+        self._render_tracks(draw_list, window_pos.x, tracks_start_y, timeline_width, total_tracks_height)
         
         # Handle mouse interaction
         self._handle_timeline_interaction(window_pos, timeline_width, timeline_height)
+        
+        imgui.end_child()
     
     def _render_ruler(self, draw_list, pos, width: float, end_y: float):
         """Render the time ruler at the top"""

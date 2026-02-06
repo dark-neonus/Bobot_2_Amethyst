@@ -1,21 +1,21 @@
 {
   "body": {
-    "length_mm": 120.0,
-    "width_mm": 120.0,
-    "height_mm": 40.0
+    "length_mm": 100.0,
+    "width_mm": 100.0,
+    "height_mm": 100.0
   },
   "legs": {
     "count": 4,
     "mounting_points": [
-      {"id": 0, "name": "FrontRight", "x": 60, "y": 0, "z": 60, "base_rotation": 45},
-      {"id": 1, "name": "BackRight", "x": -60, "y": 0, "z": 60, "base_rotation": 135},
-      {"id": 2, "name": "BackLeft", "x": -60, "y": 0, "z": -60, "base_rotation": 225},
-      {"id": 3, "name": "FrontLeft", "x": 60, "y": 0, "z": -60, "base_rotation": 315}
+      {"id": 0, "name": "FrontRight", "x": 50, "y": -30, "z": -50, "base_rotation": 315},
+      {"id": 1, "name": "BackRight", "x": -50, "y": -30, "z": -50, "base_rotation": 225},
+      {"id": 2, "name": "BackLeft", "x": -50, "y": -30, "z": 50, "base_rotation": 135},
+      {"id": 3, "name": "FrontLeft", "x": 50, "y": -30, "z": 50, "base_rotation": 45}
     ],
     "segments": {
-      "coxa_len_mm": 40.0,
-      "femur_len_mm": 80.0,
-      "tibia_len_mm": 120.0
+      "coxa_len_mm": 60.0,
+      "femur_len_mm": 50.0,
+      "tibia_len_mm": 45.0
     },
     "joints": [
       {"id": 1, "name": "Coxa", "axis": "y", "min": 0, "max": 180},

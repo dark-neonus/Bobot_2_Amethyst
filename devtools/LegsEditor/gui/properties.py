@@ -15,6 +15,14 @@ class PropertiesPanel:
     def __init__(self, config: RobotConfig, state: AppState):
         self.config = config
         self.state = state
+        self.selected_joint = None  # (leg_id, joint_index) tuple
+    
+    def set_selected_joint(self, leg_id, joint_index):
+        """Set the currently selected joint from viewport"""
+        if leg_id is not None and joint_index is not None:
+            self.selected_joint = (leg_id, joint_index)
+        else:
+            self.selected_joint = None
     
     def render(self):
         """Render the properties panel (called by DockableWindow)"""
@@ -41,13 +49,15 @@ class PropertiesPanel:
         
         imgui.separator()
         
-        # Leg controls
+        # Leg controls - expanded by default
+        imgui.set_next_item_open(True, imgui.Cond_.once)
         if imgui.tree_node("Leg Controls"):
             for leg_id in range(self.config.leg_count):
                 mount = self.config.get_mounting_point(leg_id)
                 leg_name = mount["name"]
                 
-                # Collapsible header for each leg
+                # Collapsible header for each leg - expanded by default
+                imgui.set_next_item_open(True, imgui.Cond_.once)
                 if imgui.tree_node(f"Leg {leg_id} ({leg_name})"):
                     self._render_leg_controls(leg_id)
                     imgui.tree_pop()
@@ -56,7 +66,7 @@ class PropertiesPanel:
     
     def _render_leg_controls(self, leg_id: int):
         """Render sliders for a single leg's joints"""
-        for joint in self.config.joints:
+        for joint_idx, joint in enumerate(self.config.joints):
             joint_id = joint["id"]
             joint_name = joint["name"]
             servo_name = self.config.get_servo_name(leg_id, joint_id)
@@ -66,6 +76,15 @@ class PropertiesPanel:
             
             # Get joint limits
             min_angle, max_angle = self.config.get_joint_limits(joint_id)
+            
+            # Check if this joint is selected
+            is_selected = self.selected_joint == (leg_id, joint_idx)
+            
+            # Highlight selected joint
+            if is_selected:
+                imgui.push_style_color(imgui.Col_.frame_bg, (0.2, 0.6, 0.2, 0.5))
+                imgui.push_style_color(imgui.Col_.frame_bg_hovered, (0.3, 0.7, 0.3, 0.7))
+                imgui.push_style_color(imgui.Col_.frame_bg_active, (0.4, 0.8, 0.4, 0.9))
             
             # Slider
             imgui.push_id(servo_name)
@@ -79,8 +98,32 @@ class PropertiesPanel:
             
             if changed:
                 self.state.set_servo_angle(servo_name, new_angle)
+                # Set this joint as selected when changed
+                self.selected_joint = (leg_id, joint_idx)
+            
+            # Add input field for direct angle entry
+            imgui.same_line()
+            imgui.set_next_item_width(70)
+            input_changed, input_angle = imgui.input_float(
+                f"##input_{servo_name}",
+                current_angle,
+                0.0,
+                0.0,
+                "%.1f"
+            )
+            
+            if input_changed:
+                # Clamp to valid range
+                input_angle = max(min_angle, min(max_angle, input_angle))
+                self.state.set_servo_angle(servo_name, input_angle)
+                # Set this joint as selected when changed
+                self.selected_joint = (leg_id, joint_idx)
             
             imgui.pop_id()
+            
+            # Pop highlight colors
+            if is_selected:
+                imgui.pop_style_color(3)
         
         imgui.spacing()
         

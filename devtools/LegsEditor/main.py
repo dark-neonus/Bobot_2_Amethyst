@@ -155,6 +155,9 @@ class GaitEditorApp:
         # File dialog state
         self.show_save_dialog = False
         self.show_load_dialog = False
+        self.file_dialog_path = os.path.expanduser("~/")
+        self.file_dialog_filename = "animation.json"
+        self.file_dialog_selected = None
     
     def setup(self):
         """Setup called once after OpenGL context creation"""
@@ -183,49 +186,49 @@ class GaitEditorApp:
     def render_menu_bar(self):
         """Render the main menu bar (called by Hello ImGui)"""
         if imgui.begin_menu("File"):
-            if imgui.menu_item("New", "Ctrl+N")[0]:
+            if imgui.menu_item("New", "Ctrl+N", False)[0]:
                 self.new_animation()
-                
-                if imgui.menu_item("Open", "Ctrl+O")[0]:
-                    self.open_animation()
-                
-                imgui.separator()
-                
-                if imgui.menu_item("Save", "Ctrl+S", False, self.state.current_file is not None)[0]:
-                    self.save_animation()
-                
-                if imgui.menu_item("Save As...", "Ctrl+Shift+S")[0]:
-                    self.save_animation_as()
-                
-                imgui.separator()
-                
-                if imgui.menu_item("Exit", "Alt+F4")[0]:
-                    hello_imgui.get_runner_params().app_shall_exit = True
-                
-                imgui.end_menu()
             
-            if imgui.begin_menu("View"):
-                if imgui.menu_item("Reset Camera")[0]:
-                    self.viewport.camera = self.viewport.camera.__class__()
-                
-                imgui.separator()
-                
-                if imgui.menu_item("Front View")[0]:
-                    self.viewport.camera.snap_to_view("front")
-                
-                if imgui.menu_item("Top View")[0]:
-                    self.viewport.camera.snap_to_view("top")
-                
-                if imgui.menu_item("Right View")[0]:
-                    self.viewport.camera.snap_to_view("right")
-                
-                imgui.end_menu()
+            if imgui.menu_item("Open", "Ctrl+O", False)[0]:
+                self.open_animation()
             
-            if imgui.begin_menu("Help"):
-                if imgui.menu_item("About")[0]:
-                    pass  # Could show about dialog
-                
-                imgui.end_menu()
+            imgui.separator()
+            
+            if imgui.menu_item("Save", "Ctrl+S", False, self.state.current_file is not None)[0]:
+                self.save_animation()
+            
+            if imgui.menu_item("Save As...", "Ctrl+Shift+S", False)[0]:
+                self.save_animation_as()
+            
+            imgui.separator()
+            
+            if imgui.menu_item("Exit", "Alt+F4", False)[0]:
+                hello_imgui.get_runner_params().app_shall_exit = True
+            
+            imgui.end_menu()
+        
+        if imgui.begin_menu("View"):
+            if imgui.menu_item("Reset Camera", "", False)[0]:
+                self.viewport.camera = self.viewport.camera.__class__()
+            
+            imgui.separator()
+            
+            if imgui.menu_item("Front View", "", False)[0]:
+                self.viewport.camera.snap_to_view("front")
+            
+            if imgui.menu_item("Top View", "", False)[0]:
+                self.viewport.camera.snap_to_view("top")
+            
+            if imgui.menu_item("Right View", "", False)[0]:
+                self.viewport.camera.snap_to_view("right")
+            
+            imgui.end_menu()
+        
+        if imgui.begin_menu("Help"):
+            if imgui.menu_item("About", "", False)[0]:
+                pass  # Could show about dialog
+            
+            imgui.end_menu()
     
     def render_viewport_window(self):
         """Render the 3D viewport content"""
@@ -357,6 +360,8 @@ class GaitEditorApp:
     
     def _draw_3d_body(self, draw_list, corners, screen_center, width, height):
         """Draw 3D robot body"""
+        import numpy as np
+        
         # Define body edges (cube)
         edges = [
             (0, 1), (1, 2), (2, 3), (3, 0),  # Bottom face
@@ -375,14 +380,64 @@ class GaitEditorApp:
                     imgui.color_convert_float4_to_u32(imgui.ImVec4(0.0, 1.0, 1.0, 1.0)),
                     2.0
                 )
+        
+        # Add smile marker on the front face (positive X)
+        # Front face center is at positive X
+        front_center = np.array([self.config.body_length / 2, 0, 0])
+        
+        # Draw smile: two eyes and a curved mouth
+        # Left eye
+        left_eye = front_center + np.array([5, 15, -15])
+        left_eye_proj = self._project_3d_to_2d(left_eye, self.viewport.camera, screen_center, width, height)
+        if left_eye_proj:
+            draw_list.add_circle_filled(
+                imgui.ImVec2(left_eye_proj[0], left_eye_proj[1]),
+                3.0,
+                imgui.color_convert_float4_to_u32(imgui.ImVec4(1.0, 1.0, 0.0, 1.0))
+            )
+        
+        # Right eye
+        right_eye = front_center + np.array([5, 15, 15])
+        right_eye_proj = self._project_3d_to_2d(right_eye, self.viewport.camera, screen_center, width, height)
+        if right_eye_proj:
+            draw_list.add_circle_filled(
+                imgui.ImVec2(right_eye_proj[0], right_eye_proj[1]),
+                3.0,
+                imgui.color_convert_float4_to_u32(imgui.ImVec4(1.0, 1.0, 0.0, 1.0))
+            )
+        
+        # Smile curve - draw as a series of line segments
+        smile_points = []
+        for i in range(11):
+            t = i / 10.0  # 0 to 1
+            z_offset = (t - 0.5) * 30  # -15 to 15
+            y_offset = -5 - 8 * (1 - (2*t - 1)**2)  # Parabola for smile curve
+            smile_pt = front_center + np.array([5, y_offset, z_offset])
+            smile_proj = self._project_3d_to_2d(smile_pt, self.viewport.camera, screen_center, width, height)
+            if smile_proj:
+                smile_points.append(smile_proj)
+        
+        # Draw smile as connected line segments
+        for i in range(len(smile_points) - 1):
+            draw_list.add_line(
+                imgui.ImVec2(smile_points[i][0], smile_points[i][1]),
+                imgui.ImVec2(smile_points[i+1][0], smile_points[i+1][1]),
+                imgui.color_convert_float4_to_u32(imgui.ImVec4(1.0, 1.0, 0.0, 1.0)),
+                2.0
+            )
     
     def _draw_3d_legs(self, draw_list, leg_positions, screen_center, width, height):
         """Draw 3D robot legs as solid rectangular tubes"""
         import math
         import numpy as np
         
-        leg_width = 18.0   # Width of leg in mm (3D space)
-        leg_height = 12.0  # Height/thickness of leg in mm (3D space)
+        # Different dimensions for each joint segment
+        # Format: (width, height) in mm
+        segment_dimensions = [
+            (20.0, 45.0),  # Joint 1 (Coxa): width 20mm, height 45mm
+            (55.0, 35.0),  # Joint 2 (Femur): width 55mm, height 35mm
+            (45.0, 20.0),  # Joint 3 (Tibia): width 45mm, height 20mm
+        ]
         
         for leg_id, positions in leg_positions.items():
             if not positions or len(positions) < 2:
@@ -390,6 +445,8 @@ class GaitEditorApp:
             
             # Draw leg segments as 3D rectangular tubes
             for i in range(len(positions) - 1):
+                # Get dimensions for this segment
+                leg_width, leg_height = segment_dimensions[i] if i < len(segment_dimensions) else segment_dimensions[-1]
                 p1_3d = np.array(positions[i])
                 p2_3d = np.array(positions[i + 1])
                 
@@ -635,33 +692,91 @@ class GaitEditorApp:
             )
     
     def _handle_joint_selection(self, mouse_pos, cursor_pos, avail, leg_positions):
-        """Handle clicking on joints to select them"""
+        """Handle clicking on joints or leg segments to select them"""
+        import math
+        import numpy as np
+        
         screen_center = (cursor_pos.x + avail.x / 2, cursor_pos.y + avail.y / 2)
-        click_threshold = 10.0  # Pixels
+        click_threshold_joint = 10.0  # Pixels for joint circles
+        click_threshold_segment = 15.0  # Pixels for segment line distance
         
         closest_joint = None
         closest_distance = float('inf')
         
-        # Check all joints
+        # First, check if click is near any leg segment (using distance to line segment)
         for leg_id, positions in leg_positions.items():
-            for i, pos_3d in enumerate(positions):
-                p_joint = self._project_3d_to_2d(pos_3d, self.viewport.camera, screen_center, avail.x, avail.y)
-                if p_joint:
-                    import math
-                    dx = mouse_pos.x - p_joint[0]
-                    dy = mouse_pos.y - p_joint[1]
-                    distance = math.sqrt(dx*dx + dy*dy)
+            if len(positions) < 2:
+                continue
+            
+            for i in range(len(positions) - 1):
+                p1_3d = positions[i]
+                p2_3d = positions[i + 1]
+                
+                # Project both ends to 2D
+                p1 = self._project_3d_to_2d(p1_3d, self.viewport.camera, screen_center, avail.x, avail.y)
+                p2 = self._project_3d_to_2d(p2_3d, self.viewport.camera, screen_center, avail.x, avail.y)
+                
+                if p1 and p2:
+                    # Calculate distance from mouse to line segment in 2D
+                    distance = self._point_to_segment_distance(
+                        mouse_pos.x, mouse_pos.y,
+                        p1[0], p1[1], p2[0], p2[1]
+                    )
                     
-                    if distance < click_threshold and distance < closest_distance:
+                    if distance < click_threshold_segment and distance < closest_distance:
                         closest_distance = distance
                         closest_joint = (leg_id, i)
+        
+        # If no segment was clicked, check joints (circles)
+        if closest_distance >= click_threshold_segment:
+            for leg_id, positions in leg_positions.items():
+                for i, pos_3d in enumerate(positions):
+                    p_joint = self._project_3d_to_2d(pos_3d, self.viewport.camera, screen_center, avail.x, avail.y)
+                    if p_joint:
+                        dx = mouse_pos.x - p_joint[0]
+                        dy = mouse_pos.y - p_joint[1]
+                        distance = math.sqrt(dx*dx + dy*dy)
+                        
+                        if distance < click_threshold_joint and distance < closest_distance:
+                            closest_distance = distance
+                            closest_joint = (leg_id, i)
         
         # Update selection
         if closest_joint:
             self.selected_joint = closest_joint
+            # Update properties panel selection
+            if self.properties_panel:
+                self.properties_panel.set_selected_joint(closest_joint[0], closest_joint[1])
             print(f"Selected: Leg {closest_joint[0]}, Joint {closest_joint[1]}")
         else:
             self.selected_joint = None
+            if self.properties_panel:
+                self.properties_panel.set_selected_joint(None, None)
+    
+    def _point_to_segment_distance(self, px, py, x1, y1, x2, y2):
+        """Calculate the distance from point (px, py) to line segment (x1,y1)-(x2,y2)"""
+        import math
+        
+        # Vector from point 1 to point 2
+        dx = x2 - x1
+        dy = y2 - y1
+        
+        # Avoid division by zero for degenerate segments
+        length_sq = dx * dx + dy * dy
+        if length_sq < 0.001:
+            # Segment is essentially a point
+            return math.sqrt((px - x1) ** 2 + (py - y1) ** 2)
+        
+        # Calculate projection parameter t
+        # t = 0 means point projects to p1, t = 1 means point projects to p2
+        t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / length_sq))
+        
+        # Find the closest point on the segment
+        closest_x = x1 + t * dx
+        closest_y = y1 + t * dy
+        
+        # Return distance from point to closest point on segment
+        return math.sqrt((px - closest_x) ** 2 + (py - closest_y) ** 2)
     
     def handle_viewport_input(self):
         """Handle mouse input for viewport camera control"""
@@ -696,6 +811,13 @@ class GaitEditorApp:
         
         # Update playback
         self.playback.update(delta_time)
+        
+        # Render file dialogs if active
+        if self.show_save_dialog:
+            self._render_file_dialog("Save Animation", True)
+        
+        if self.show_load_dialog:
+            self._render_file_dialog("Open Animation", False)
         
         # Render main windows with begin/end
         # 3D Viewport goes to MainDockSpace (which becomes the center/top-left after splits)
@@ -751,25 +873,9 @@ class GaitEditorApp:
     
     def open_animation(self):
         """Open an animation file"""
-        # Simple file dialog using imgui
-        # For production, use a proper file dialog
-        import tkinter as tk
-        from tkinter import filedialog
-        
-        root = tk.Tk()
-        root.withdraw()
-        
-        filepath = filedialog.askopenfilename(
-            title="Open Animation",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-        )
-        
-        if filepath:
-            try:
-                self.state.load_from_file(filepath)
-                print(f"Loaded animation from {filepath}")
-            except Exception as e:
-                print(f"Error loading file: {e}")
+        self.show_load_dialog = True
+        self.file_dialog_path = os.path.expanduser("~/")
+        self.file_dialog_filename = ""
     
     def save_animation(self):
         """Save animation to current file"""
@@ -784,24 +890,117 @@ class GaitEditorApp:
     
     def save_animation_as(self):
         """Save animation to a new file"""
-        import tkinter as tk
-        from tkinter import filedialog
+        self.show_save_dialog = True
+        self.file_dialog_path = os.path.expanduser("~/")
+        self.file_dialog_filename = "animation.json"
+    
+    def _render_file_dialog(self, title, is_save):
+        """Render a simple file browser dialog"""
+        imgui.open_popup(title)
         
-        root = tk.Tk()
-        root.withdraw()
+        # Center the modal
+        viewport_size = imgui.get_main_viewport().size
+        imgui.set_next_window_size((600, 400))
+        imgui.set_next_window_pos((viewport_size.x * 0.5, viewport_size.y * 0.5), imgui.Cond_.appearing, (0.5, 0.5))
         
-        filepath = filedialog.asksaveasfilename(
-            title="Save Animation As",
-            defaultextension=".json",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-        )
-        
-        if filepath:
+        if imgui.begin_popup_modal(title, True, imgui.WindowFlags_.no_resize)[0]:
+            # Current path display
+            imgui.text(f"Current: {self.file_dialog_path}")
+            imgui.separator()
+            
+            # File list with scrolling
+            imgui.begin_child("file_list", (0, -70), True)
+            
             try:
-                self.state.save_to_file(filepath)
-                print(f"Saved animation to {filepath}")
+                # Parent directory button
+                parent = os.path.dirname(self.file_dialog_path.rstrip('/'))
+                if parent and parent != self.file_dialog_path:
+                    if imgui.selectable("../", False)[0]:
+                        self.file_dialog_path = parent + "/"
+                
+                # List directories and files
+                items = []
+                try:
+                    for item in sorted(os.listdir(self.file_dialog_path)):
+                        full_path = os.path.join(self.file_dialog_path, item)
+                        if os.path.isdir(full_path):
+                            items.append((item + "/", True, full_path))
+                        elif not is_save and item.endswith('.json'):
+                            items.append((item, False, full_path))
+                        elif is_save:
+                            items.append((item, False, full_path))
+                except PermissionError:
+                    imgui.text_colored((1.0, 0.3, 0.3, 1.0), "Permission denied")
+                
+                for display_name, is_dir, full_path in items:
+                    selected = self.file_dialog_selected == full_path
+                    if imgui.selectable(display_name, selected)[0]:
+                        if is_dir:
+                            self.file_dialog_path = full_path + "/"
+                            self.file_dialog_selected = None
+                        else:
+                            self.file_dialog_selected = full_path
+                            self.file_dialog_filename = display_name
+            
             except Exception as e:
-                print(f"Error saving file: {e}")
+                imgui.text_colored((1.0, 0.3, 0.3, 1.0), f"Error: {str(e)}")
+            
+            imgui.end_child()
+            
+            imgui.separator()
+            
+            # Filename input (for save)
+            if is_save:
+                imgui.text("Filename:")
+                imgui.same_line()
+                imgui.set_next_item_width(-1)
+                changed, self.file_dialog_filename = imgui.input_text("##filename", self.file_dialog_filename)
+            
+            imgui.spacing()
+            
+            # Buttons
+            action_label = "Save" if is_save else "Open"
+            can_action = bool(self.file_dialog_filename if is_save else self.file_dialog_selected)
+            
+            if not can_action:
+                imgui.begin_disabled()
+            
+            if imgui.button(action_label, (120, 0)):
+                if is_save:
+                    filepath = os.path.join(self.file_dialog_path, self.file_dialog_filename)
+                    try:
+                        self.state.save_to_file(filepath)
+                        print(f"Saved animation to {filepath}")
+                        self.show_save_dialog = False
+                    except Exception as e:
+                        print(f"Error saving file: {e}")
+                else:
+                    if self.file_dialog_selected:
+                        try:
+                            self.state.load_from_file(self.file_dialog_selected)
+                            print(f"Loaded animation from {self.file_dialog_selected}")
+                            self.show_load_dialog = False
+                        except Exception as e:
+                            print(f"Error loading file: {e}")
+            
+            if not can_action:
+                imgui.end_disabled()
+            
+            imgui.same_line()
+            if imgui.button("Cancel", (120, 0)):
+                if is_save:
+                    self.show_save_dialog = False
+                else:
+                    self.show_load_dialog = False
+                imgui.close_current_popup()
+            
+            imgui.end_popup()
+        else:
+            # Dialog was closed
+            if is_save:
+                self.show_save_dialog = False
+            else:
+                self.show_load_dialog = False
     
     def cleanup(self):
         """Cleanup resources"""
