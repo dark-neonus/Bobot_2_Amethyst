@@ -115,11 +115,57 @@ Type = IdleBlink
 AnimationFPS = 20
 IdleTimeMinMS = 1000
 IdleTimeMaxMS = 3000
+
+[Dimensions]
+; Frame dimensions in pixels (filled automatically during export)
+Width = 0
+Height = 0
 """
         
         with open(desc_file, 'w') as f:
             f.write(content)
         print(f"  Generated Description.ini for '{expression_name}'")
+    
+    def update_description_dimensions(self, expression_dir: Path, width: int, height: int, fps: float = None) -> None:
+        """
+        Update Description.ini with frame dimensions and FPS.
+        
+        Args:
+            expression_dir: Path to the expression directory
+            width: Frame width in pixels
+            height: Frame height in pixels
+            fps: Animation FPS (optional, will not update if None)
+        """
+        desc_file = expression_dir / "Description.ini"
+        
+        if not desc_file.exists():
+            print(f"    Warning: Description.ini not found, cannot update dimensions")
+            return
+        
+        # Read existing content
+        config = configparser.ConfigParser()
+        config.optionxform = str  # Preserve case
+        config.read(desc_file)
+        
+        # Ensure [Dimensions] section exists
+        if 'Dimensions' not in config:
+            config.add_section('Dimensions')
+        
+        # Update dimensions
+        config['Dimensions']['Width'] = str(width)
+        config['Dimensions']['Height'] = str(height)
+        
+        # Update FPS if provided
+        if fps is not None:
+            if 'Loop' in config:
+                config['Loop']['AnimationFPS'] = str(int(fps)) if fps == int(fps) else f"{fps:.1f}"
+        
+        # Write back to file
+        with open(desc_file, 'w') as f:
+            config.write(f, space_around_delimiters=True)
+        
+        fps_info = f", FPS={fps:.1f}" if fps is not None else ""
+        print(f"    Updated Description.ini with dimensions: {width}x{height}{fps_info}")
     
     def find_aseprite_executable(self) -> str:
         """
@@ -152,6 +198,73 @@ IdleTimeMaxMS = 3000
         print("Warning: Aseprite executable not found. Frame export will be skipped.")
         return None
     
+    def get_aseprite_fps(self, aseprite_file: Path, aseprite_cmd: str) -> float:
+        """
+        Extract FPS from Aseprite file by reading first frame duration.
+        
+        Args:
+            aseprite_file: Path to the .aseprite file
+            aseprite_cmd: Path to aseprite executable
+            
+        Returns:
+            FPS value (default 20.0 if cannot extract)
+        """
+        if aseprite_cmd is None:
+            return 20.0
+        
+        try:
+            # Create temporary JSON file for metadata
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
+                json_path = tmp.name
+            
+            # Export metadata to JSON
+            cmd = [
+                aseprite_cmd,
+                '-b',
+                str(aseprite_file),
+                '--list-tags',
+                '--data', json_path,
+                '--format', 'json-array'
+            ]
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode == 0:
+                # Read JSON metadata
+                import json
+                with open(json_path, 'r') as f:
+                    data = json.load(f)
+                
+                # Extract duration from first frame (in milliseconds)
+                if 'frames' in data and len(data['frames']) > 0:
+                    first_frame = data['frames'][0]
+                    duration_ms = first_frame.get('duration', 50)  # Default 50ms if not found
+                    
+                    # Convert duration to FPS
+                    fps = 1000.0 / duration_ms
+                    
+                    # Clean up temp file
+                    Path(json_path).unlink()
+                    
+                    print(f"    Detected FPS: {fps:.1f} (frame duration: {duration_ms}ms)")
+                    return fps
+            
+            # Clean up temp file if it exists
+            if Path(json_path).exists():
+                Path(json_path).unlink()
+                
+        except Exception as e:
+            print(f"    Warning: Could not extract FPS from Aseprite file: {e}")
+        
+        # Return default FPS
+        return 20.0
+    
     def export_aseprite_frames(self, aseprite_file: Path, frames_dir: Path, aseprite_cmd: str) -> List[Path]:
         """
         Export Aseprite animation to PNG frame sequence.
@@ -172,8 +285,9 @@ IdleTimeMaxMS = 3000
         temp_png_dir.mkdir(exist_ok=True)
         
         # Export frames as PNG sequence
-        # Frame naming: Frame_00.png, Frame_01.png, etc.
-        output_pattern = temp_png_dir / "Frame_{frame2}.png"
+        # Frame naming: Frame_0.png, Frame_1.png, etc.
+        # Note: Use {frame} (0-indexed) not {frame2} to get correct frame order
+        output_pattern = temp_png_dir / "Frame_{frame}.png"
         
         try:
             cmd = [
@@ -192,8 +306,18 @@ IdleTimeMaxMS = 3000
             )
             
             if result.returncode == 0:
-                # Get list of exported PNG files and rename them to start from 00
-                png_files = sorted(temp_png_dir.glob("Frame_*.png"))
+                # Get list of exported PNG files and sort them numerically by frame number
+                png_files = list(temp_png_dir.glob("Frame_*.png"))
+                
+                # Sort numerically by extracting the frame number from filename
+                # Frame_0.png -> 0, Frame_10.png -> 10, etc.
+                def extract_frame_number(filepath):
+                    # Extract number from "Frame_N.png"
+                    stem = filepath.stem  # "Frame_N"
+                    num_str = stem.split('_')[1]  # "N"
+                    return int(num_str)
+                
+                png_files.sort(key=extract_frame_number)
                 
                 # Rename files to ensure sequential numbering starting from 00
                 renamed_files = []
@@ -216,21 +340,23 @@ IdleTimeMaxMS = 3000
             print(f"    Error: {e}")
             return []
     
-    def convert_png_to_u8g2_format(self, png_file: Path, output_file: Path) -> bool:
+    def convert_png_to_u8g2_format(self, png_file: Path, output_file: Path) -> Tuple[bool, int, int]:
         """
         Convert PNG to u8g2-compatible monochrome binary format.
         
-        Format:
-        - 2 bytes: width (little-endian uint16)
-        - 2 bytes: height (little-endian uint16)
+        Format (optimized):
         - N bytes: monochrome bitmap data (1 bit per pixel, packed)
+        
+        Dimensions are stored in Description.ini instead of each frame file.
+        This reduces file size and speeds up loading since dimensions
+        are read once and reused for all frames.
         
         Args:
             png_file: Input PNG file path
             output_file: Output binary file path
             
         Returns:
-            True if successful, False otherwise
+            Tuple of (success, width, height)
         """
         try:
             # Open and convert to monochrome
@@ -257,24 +383,22 @@ IdleTimeMaxMS = 3000
                             pixel = img.getpixel((x, y))
                             # In PIL '1' mode: 0 = black, 255 = white
                             # For u8g2: 1 = pixel on, 0 = pixel off
-                            if pixel == 0:  # Black pixel
+                            # Invert: white pixels in source become pixels on display
+                            if pixel != 0:  # White pixel (inverted)
                                 byte_val |= (1 << bit)
                     bitmap_data.append(byte_val)
             
-            # Write header + bitmap data
+            # Write bitmap data only (no dimensions)
             with open(output_file, 'wb') as f:
-                # Write width and height as little-endian uint16
-                f.write(struct.pack('<HH', width, height))
-                # Write bitmap data
                 f.write(bitmap_data)
             
-            return True
+            return True, width, height
             
         except Exception as e:
             print(f"      Error converting {png_file.name}: {e}")
-            return False
+            return False, 0, 0
     
-    def process_and_convert_frames(self, png_files: List[Path], frames_dir: Path) -> int:
+    def process_and_convert_frames(self, png_files: List[Path], frames_dir: Path) -> Tuple[int, int, int]:
         """
         Convert PNG frames to u8g2 binary format and clean up.
         
@@ -283,18 +407,25 @@ IdleTimeMaxMS = 3000
             frames_dir: Directory to save final binary frames
             
         Returns:
-            Number of successfully converted frames
+            Tuple of (converted_count, width, height)
         """
         frames_dir.mkdir(exist_ok=True)
         converted_count = 0
+        frame_width = 0
+        frame_height = 0
         
         for png_file in png_files:
             # Determine output filename (replace .png with .bin)
             frame_name = png_file.stem  # e.g., "Frame_00"
             output_file = frames_dir / f"{frame_name}.bin"
             
-            if self.convert_png_to_u8g2_format(png_file, output_file):
+            success, width, height = self.convert_png_to_u8g2_format(png_file, output_file)
+            if success:
                 converted_count += 1
+                # Store dimensions from first frame (all frames should be same size)
+                if converted_count == 1:
+                    frame_width = width
+                    frame_height = height
         
         # Clean up temporary PNG files
         if png_files:
@@ -311,7 +442,7 @@ IdleTimeMaxMS = 3000
             except Exception:
                 pass  # Directory might not be empty or already removed
         
-        return converted_count
+        return converted_count, frame_width, frame_height
     
     def process_library(self, library_name: str, aseprite_cmd: str) -> None:
         """
@@ -356,14 +487,21 @@ IdleTimeMaxMS = 3000
             for aseprite_file in aseprite_files:
                 print(f"    Exporting frames from {aseprite_file.name}...")
                 
+                # Extract FPS from Aseprite file
+                fps = self.get_aseprite_fps(aseprite_file, aseprite_cmd)
+                
                 # Export to PNG
                 png_files = self.export_aseprite_frames(aseprite_file, frames_dir, aseprite_cmd)
                 
                 if png_files:
                     # Convert PNG to u8g2 binary format
                     print(f"    Converting {len(png_files)} frames to u8g2 binary format...")
-                    converted_count = self.process_and_convert_frames(png_files, frames_dir)
-                    print(f"    ✓ Converted {converted_count} frames to binary format")
+                    converted_count, width, height = self.process_and_convert_frames(png_files, frames_dir)
+                    print(f"    ✓ Converted {converted_count} frames ({width}x{height} pixels)")
+                    
+                    # Update Description.ini with dimensions and FPS
+                    if converted_count > 0:
+                        self.update_description_dimensions(item, width, height, fps)
                 else:
                     print(f"    No frames exported from {aseprite_file.name}")
     

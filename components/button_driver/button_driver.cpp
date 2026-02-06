@@ -148,12 +148,10 @@ bool ButtonDriver::isButtonPressed(Button button) {
         return false;
     }
 
-    bool states[9];
-    if (!readButtons(states)) {
-        return false;
-    }
-    
-    return states[btn_idx];
+    // Use cached state from polling task (updated every 10ms)
+    // This avoids blocking I2C reads on every call
+    uint16_t mask = (1 << btn_idx);
+    return !(button_state_ & mask);  // Active-low
 }
 
 void ButtonDriver::setButtonCallback(ButtonCallback callback) {
@@ -214,7 +212,7 @@ void ButtonDriver::pollingTask(void* parameter) {
             }
         }
         
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
     
     vTaskDelete(nullptr);

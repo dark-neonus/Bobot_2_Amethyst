@@ -4,6 +4,7 @@
 #include <driver/i2c_master.h>
 #include <stdio.h>
 #include <string.h>
+#include <cmath>
 #include <u8g2.h>
 
 #include "display.hpp"
@@ -11,7 +12,15 @@
 #include "sd_card.hpp"
 #include "bmi160.hpp"
 #include "asset_uploader.hpp"
+#include "audio_player.hpp"
+#include "buzzer.hpp"
+#include "servo_driver.hpp"
 #include "sdkconfig.h"
+
+// Graphics engine
+#include "vec2i.hpp"
+#include "frame.hpp"
+#include "expression.hpp"
 
 #include <dirent.h>
 #include <vector>
@@ -28,6 +37,9 @@ static Bobot::ButtonDriver* buttonDriver = nullptr;
 static Bobot::SDCard* sdCard = nullptr;
 static Bobot::BMI160* imu = nullptr;
 static Bobot::AssetUploader* assetUploader = nullptr;
+static Bobot::AudioPlayer* audioPlayer = nullptr;
+static Bobot::Buzzer* buzzer = nullptr;
+static Bobot::ServoDriver* servoDriver = nullptr;
 static i2c_master_bus_handle_t i2c_bus = nullptr;
 
 // Upload mode flag
@@ -68,6 +80,20 @@ int countFilesRecursive(const char* path) {
 }
 
 // Button states
+static bool prev_button_states[9] = {false};
+static uint32_t settings_button_press_time = 0;
+
+/**
+ * @brief Trigger audio playback (accessible from any task)
+ * Audio runs independently on Core 0, so this is thread-safe
+ */
+inline void triggerAudioPlayback() {
+  if (audioPlayer) {
+    audioPlayer->triggerPlayback();
+  } else {
+    ESP_LOGE(TAG, "audioPlayer is not initialized!");
+  }
+}
 static bool button_states[9] = {false};
 
 // IMU data and interrupt flag
@@ -289,9 +315,47 @@ void uiTask(void* parameter) {
       }
     }
     
-    // Read button states
-    if (buttonDriver->readButtons(button_states)) {
+    // Read button states and detect settings button press for audio
+    bool readSuccess = buttonDriver->readButtons(button_states);
+    
+    // Always log button 6 state for debugging
+    static int debug_counter = 0;
+    if (++debug_counter % 100 == 0) {  // Log every 100 cycles
+      ESP_LOGI(TAG, "Button[6]=%d, readSuccess=%d", button_states[6], readSuccess);
+    }
+    
+    if (readSuccess) {
       needs_redraw = true;
+      
+      // Log button state changes for debugging
+      if (button_states[6] != prev_button_states[6]) {
+        ESP_LOGI(TAG, "Settings button state changed: prev=%d, now=%d", prev_button_states[6], button_states[6]);
+      }
+      
+      // Detect settings button (index 6) press and hold for audio trigger
+      if (button_states[6] && !prev_button_states[6]) {
+        // Settings button just pressed
+        settings_button_press_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+        ESP_LOGI(TAG, "Settings button pressed at %dms", settings_button_press_time);
+      } else if (!button_states[6] && prev_button_states[6]) {
+        // Settings button just released - check if held for at least 10ms
+        uint32_t press_duration = (xTaskGetTickCount() * portTICK_PERIOD_MS) - settings_button_press_time;
+        ESP_LOGI(TAG, "Settings button released, duration: %dms", press_duration);
+        if (press_duration >= 10) {
+          // Trigger audio playback (minimum 10ms to avoid accidental triggers)
+          if (audioPlayer) {
+            ESP_LOGI(TAG, "Settings button pressed for %dms - playing meow", press_duration);
+            audioPlayer->triggerPlayback();
+          } else {
+            ESP_LOGE(TAG, "audioPlayer is NULL!");
+          }
+        } else {
+          ESP_LOGW(TAG, "Press duration too short: %dms (need >= 10ms)", press_duration);
+        }
+      }
+      
+      // Save previous button states
+      memcpy(prev_button_states, button_states, sizeof(button_states));
     }
     
     // Update file count every 5 seconds
@@ -339,6 +403,466 @@ void uiTask(void* parameter) {
   }
 }
 
+/**
+ * @brief UI mode switcher task - cycles between old UI and all expressions
+ * 
+ * Cycles through: Old UI -> Expression 1 -> Expression 2 -> ... -> Old UI
+ * Switch triggered by holding UI button for 2 seconds
+ */
+void graphicsTestTask(void* parameter) {
+  ESP_LOGI(TAG, "UI mode switcher task started");
+  
+  if (!display || !sdCard || !buttonDriver) {
+    ESP_LOGE(TAG, "Display, SD card, or button driver not available");
+    vTaskDelete(NULL);
+    return;
+  }
+  
+  // Scan Amethyst library for all expressions
+  std::vector<std::string> expressionNames;
+  char amethystPath[256];
+  snprintf(amethystPath, sizeof(amethystPath), 
+           "%s/assets/graphics/libraries/Amethyst",
+           sdCard->getMountPoint());
+  
+  DIR* dir = opendir(amethystPath);
+  if (dir != nullptr) {
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+      // Skip . and ..
+      if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+        continue;
+      }
+      
+      // Only add directories (expressions)
+      if (entry->d_type == DT_DIR) {
+        expressionNames.push_back(entry->d_name);
+        ESP_LOGI(TAG, "Found expression: %s", entry->d_name);
+      }
+    }
+    closedir(dir);
+  }
+  
+  if (expressionNames.empty()) {
+    ESP_LOGE(TAG, "No expressions found in Amethyst library");
+    vTaskDelete(NULL);
+    return;
+  }
+  
+  ESP_LOGI(TAG, "Found %zu expressions in Amethyst library", expressionNames.size());
+  
+  // UI modes: -3 = servo control, -2 = buzzer control, -1 = old UI, 0+ = expression index
+  int currentMode = -1;  // Start with old UI
+  std::unique_ptr<Bobot::Graphics::Expression> currentExpression;
+  bool expressionLoaded = false;
+  
+  // Servo control state
+  uint8_t currentServoChannel = 0;
+  uint8_t servoAngles[16] = {90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90};
+  
+  uint32_t lastUpdateTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
+  uint32_t uiButtonHoldTime = 0;
+  bool uiButtonWasPressed = false;
+  bool modeSwitchTriggered = false;  // Prevents re-trigger until button released
+  
+  // Polling fallback for IMU
+  uint32_t poll_counter = 0;
+  uint32_t last_interrupt_count = 0;
+  
+  // Main loop
+  while (true) {
+    uint32_t currentTime = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    uint32_t deltaTime = currentTime - lastUpdateTime;
+    lastUpdateTime = currentTime;
+    
+    // Read IMU data continuously if available
+    if (imu != nullptr) {
+      bool should_read = false;
+      
+      // Check interrupt flag
+      if (imu_data_ready) {
+        imu_data_ready = false;
+        should_read = true;
+      }
+      
+      // Fallback: poll every 10 cycles (~500ms at 50Hz) if interrupts stop working
+      poll_counter++;
+      if (poll_counter >= 10) {
+        poll_counter = 0;
+        should_read = true;
+        
+        // Debug: check if interrupts are still firing
+        if (imu_interrupt_count == last_interrupt_count) {
+          ESP_LOGW(TAG, "No IMU interrupts - polling. Accel: %.2f,%.2f,%.2f",
+                   accel_data.x, accel_data.y, accel_data.z);
+        }
+        last_interrupt_count = imu_interrupt_count;
+      }
+      
+      if (should_read) {
+        imu->readAccel(accel_data);
+        imu->readGyro(gyro_data);
+      }
+    }
+    // If IMU not available, accel_data stays at zeros (initialized at startup)
+    
+    // Check UI button state
+    bool uiButtonPressed = buttonDriver->isButtonPressed(Bobot::Button::UI);
+    
+    // Detect UI button hold for instant mode switch
+    if (uiButtonPressed && !uiButtonWasPressed) {
+      // Button just pressed
+      uiButtonHoldTime = 0;
+      uiButtonWasPressed = true;
+      modeSwitchTriggered = false;  // Reset trigger flag on new press
+    } else if (uiButtonPressed && uiButtonWasPressed && !modeSwitchTriggered) {
+      // Button being held (and hasn't triggered yet)
+      uiButtonHoldTime += deltaTime;
+      
+      if (uiButtonHoldTime >= 50) {
+        // Held for 50ms - switch mode
+        currentMode++;
+        
+        // Cycle: -3 (servo) -> -2 (buzzer) -> -1 (old UI) -> 0 -> 1 -> ... -> (n-1) -> -3
+        if (currentMode >= (int)expressionNames.size()) {
+          currentMode = -3;  // Back to servo mode
+        }
+        
+        ESP_LOGI(TAG, "Switching to mode %d", currentMode);
+        
+        // Load expression if needed
+        if (currentMode >= 0) {
+          char expressionPath[256];
+          snprintf(expressionPath, sizeof(expressionPath), 
+                   "%s/assets/graphics/libraries/Amethyst/%s",
+                   sdCard->getMountPoint(),
+                   expressionNames[currentMode].c_str());
+          
+          currentExpression = std::make_unique<Bobot::Graphics::Expression>();
+          if (currentExpression->loadFromDirectory(expressionPath)) {
+            expressionLoaded = true;
+            ESP_LOGI(TAG, "Loaded expression: %s", expressionNames[currentMode].c_str());
+          } else {
+            ESP_LOGE(TAG, "Failed to load expression: %s", expressionNames[currentMode].c_str());
+            expressionLoaded = false;
+          }
+        } else {
+          expressionLoaded = false;
+          currentExpression.reset();
+        }
+        
+        // Mark as triggered to prevent re-triggering until button is released
+        modeSwitchTriggered = true;
+      }
+    } else if (!uiButtonPressed && uiButtonWasPressed) {
+      // Button released
+      uiButtonHoldTime = 0;
+      uiButtonWasPressed = false;
+      modeSwitchTriggered = false;  // Allow new trigger on next press
+    }
+    
+    // Render current mode
+    if (currentMode == -3) {
+      // Servo control mode
+      buttonDriver->readButtons(button_states);
+      
+      // LEFT button - previous channel
+      if (button_states[3] && !prev_button_states[3]) {
+        if (currentServoChannel > 0) {
+          currentServoChannel--;
+        } else {
+          currentServoChannel = 15;
+        }
+        ESP_LOGI(TAG, "Servo channel: %d", currentServoChannel);
+      }
+      
+      // RIGHT button - next channel
+      if (button_states[5] && !prev_button_states[5]) {
+        if (currentServoChannel < 15) {
+          currentServoChannel++;
+        } else {
+          currentServoChannel = 0;
+        }
+        ESP_LOGI(TAG, "Servo channel: %d", currentServoChannel);
+      }
+      
+      // UP button - increase angle
+      if (button_states[1] && !prev_button_states[1]) {
+        if (servoAngles[currentServoChannel] < 180) {
+          servoAngles[currentServoChannel] += 10;
+          if (servoAngles[currentServoChannel] > 180) {
+            servoAngles[currentServoChannel] = 180;
+          }
+          if (servoDriver) {
+            servoDriver->setAngle(currentServoChannel, servoAngles[currentServoChannel]);
+          }
+          ESP_LOGI(TAG, "Channel %d angle: %d", currentServoChannel, servoAngles[currentServoChannel]);
+        }
+      }
+      
+      // DOWN button - decrease angle
+      if (button_states[7] && !prev_button_states[7]) {
+        if (servoAngles[currentServoChannel] >= 10) {
+          servoAngles[currentServoChannel] -= 10;
+          if (servoDriver) {
+            servoDriver->setAngle(currentServoChannel, servoAngles[currentServoChannel]);
+          }
+          ESP_LOGI(TAG, "Channel %d angle: %d", currentServoChannel, servoAngles[currentServoChannel]);
+        }
+      }
+      
+      // SETTINGS button - run servo test sequence
+      if (button_states[6] && !prev_button_states[6]) {
+        if (servoDriver) {
+          ESP_LOGI(TAG, "Starting servo test sequence");
+          
+          // Set all to 0 degrees
+          ESP_LOGI(TAG, "Setting all servos to 0 degrees");
+          servoDriver->setAllAngles(0);
+          for (int i = 0; i < 16; i++) {
+            servoAngles[i] = 0;
+          }
+          vTaskDelay(pdMS_TO_TICKS(5000));
+          
+          // Set all to 180 degrees
+          ESP_LOGI(TAG, "Setting all servos to 180 degrees");
+          servoDriver->setAllAngles(180);
+          for (int i = 0; i < 16; i++) {
+            servoAngles[i] = 180;
+          }
+          vTaskDelay(pdMS_TO_TICKS(5000));
+          
+          // Set all to 90 degrees
+          ESP_LOGI(TAG, "Setting all servos to 90 degrees");
+          servoDriver->setAllAngles(90);
+          for (int i = 0; i < 16; i++) {
+            servoAngles[i] = 90;
+          }
+          
+          ESP_LOGI(TAG, "Servo test sequence complete");
+        }
+      }
+      
+      memcpy(prev_button_states, button_states, sizeof(button_states));
+      
+      // Display servo status
+      display->clear();
+      display->setFont(u8g2_font_6x10_tr);
+      display->drawString(2, 15, "Servo Control");
+      
+      if (servoDriver) {
+        char channel_info[32];
+        snprintf(channel_info, sizeof(channel_info), "Channel: %d", currentServoChannel);
+        display->drawString(2, 30, channel_info);
+        
+        char angle_info[32];
+        snprintf(angle_info, sizeof(angle_info), "Angle: %d deg", servoAngles[currentServoChannel]);
+        display->drawString(2, 45, angle_info);
+      } else {
+        display->drawString(2, 30, "Not initialized");
+      }
+      
+      display->setFont(u8g2_font_5x7_tr);
+      display->drawString(2, 58, "L/R:Ch U/D:Ang SET:Test");
+      
+      display->update();
+      vTaskDelay(pdMS_TO_TICKS(20));  // 50 Hz
+    } else if (currentMode == -2) {
+      // Buzzer control mode
+      static uint32_t debug_counter = 0;
+      debug_counter++;
+      
+      if (debug_counter % 50 == 1) {  // Log every 50 iterations (~1 second)
+        ESP_LOGI(TAG, "Buzzer mode active, buzzer ptr: %p", buzzer);
+        if (buzzer) {
+          ESP_LOGI(TAG, "Buzzer state: %s, duty: %d%%", 
+                   buzzer->isOn() ? "ON" : "OFF", buzzer->getDutyCycle());
+        }
+      }
+      
+      buttonDriver->readButtons(button_states);
+      
+      // Log button state changes
+      bool any_button_changed = false;
+      for (int i = 0; i < 9; i++) {
+        if (button_states[i] != prev_button_states[i]) {
+          any_button_changed = true;
+          ESP_LOGI(TAG, "Button %d changed: %d -> %d", i, prev_button_states[i], button_states[i]);
+        }
+      }
+      
+      // OK button (index 4) toggles buzzer on/off
+      if (button_states[4] && !prev_button_states[4]) {
+        ESP_LOGI(TAG, "OK button pressed");
+        if (buzzer) {
+          buzzer->toggle();
+          ESP_LOGI(TAG, "Buzzer toggled: %s", buzzer->isOn() ? "ON" : "OFF");
+        } else {
+          ESP_LOGE(TAG, "Buzzer is NULL!");
+        }
+      }
+      
+      // UP button (index 1) increases duty cycle by 10%
+      if (button_states[1] && !prev_button_states[1]) {
+        ESP_LOGI(TAG, "UP button pressed");
+        if (buzzer) {
+          uint8_t duty = buzzer->getDutyCycle();
+          ESP_LOGI(TAG, "Current duty: %d%%", duty);
+          if (duty < 100) {
+            duty += 10;
+            buzzer->setDutyCycle(duty);
+            ESP_LOGI(TAG, "Buzzer duty cycle increased to: %d%%", duty);
+          } else {
+            ESP_LOGI(TAG, "Duty cycle already at maximum (100%%)");
+          }
+        } else {
+          ESP_LOGE(TAG, "Buzzer is NULL!");
+        }
+      }
+      
+      // DOWN button (index 7) decreases duty cycle by 10%
+      if (button_states[7] && !prev_button_states[7]) {
+        ESP_LOGI(TAG, "DOWN button pressed");
+        if (buzzer) {
+          uint8_t duty = buzzer->getDutyCycle();
+          ESP_LOGI(TAG, "Current duty: %d%%", duty);
+          if (duty >= 10) {
+            duty -= 10;
+            buzzer->setDutyCycle(duty);
+            ESP_LOGI(TAG, "Buzzer duty cycle decreased to: %d%%", duty);
+          } else {
+            ESP_LOGI(TAG, "Duty cycle already at minimum (0%%)");
+          }
+        } else {
+          ESP_LOGE(TAG, "Buzzer is NULL!");
+        }
+      }
+      
+      memcpy(prev_button_states, button_states, sizeof(button_states));
+      
+      // Display buzzer status
+      display->clear();
+      display->setFont(u8g2_font_6x10_tr);
+      display->drawString(2, 15, "Buzzer Control");
+      
+      if (buzzer) {
+        char status[32];
+        snprintf(status, sizeof(status), "Status: %s", buzzer->isOn() ? "ON" : "OFF");
+        display->drawString(2, 30, status);
+        
+        char duty[32];
+        snprintf(duty, sizeof(duty), "Intensity: %d%%", buzzer->getDutyCycle());
+        display->drawString(2, 45, duty);
+      } else {
+        display->drawString(2, 30, "Not initialized");
+      }
+      
+      display->setFont(u8g2_font_5x7_tr);
+      display->drawString(2, 58, "OK:On/Off UP/DN:+/-");
+      
+      display->update();
+      vTaskDelay(pdMS_TO_TICKS(20));  // 50 Hz
+    } else if (currentMode == -1) {
+      // Show old UI
+      // Read button states for UI
+      buttonDriver->readButtons(button_states);
+      
+      // Check for Settings button press for audio trigger
+      if (button_states[6] != prev_button_states[6]) {
+        ESP_LOGI(TAG, "Settings button state changed: prev=%d, now=%d", prev_button_states[6], button_states[6]);
+      }
+      
+      if (button_states[6] && !prev_button_states[6]) {
+        // Settings button just pressed
+        settings_button_press_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+        ESP_LOGI(TAG, "Settings button pressed at %dms", settings_button_press_time);
+      } else if (!button_states[6] && prev_button_states[6]) {
+        // Settings button just released - check if held for at least 10ms
+        uint32_t press_duration = (xTaskGetTickCount() * portTICK_PERIOD_MS) - settings_button_press_time;
+        ESP_LOGI(TAG, "Settings button released, duration: %dms", press_duration);
+        if (press_duration >= 10) {
+          // Trigger audio playback (minimum 10ms to avoid accidental triggers)
+          ESP_LOGI(TAG, "Settings button pressed for %dms - playing meow", press_duration);
+          triggerAudioPlayback();
+        } else {
+          ESP_LOGW(TAG, "Press duration too short: %dms (need >= 10ms)", press_duration);
+        }
+      }
+      
+      // Save previous button states
+      memcpy(prev_button_states, button_states, sizeof(button_states));
+      
+      drawUI();
+      vTaskDelay(pdMS_TO_TICKS(20));  // 50 Hz for UI
+    } else {
+      // Show expression animation
+      if (expressionLoaded && currentExpression) {
+        // Read buttons for audio trigger
+        buttonDriver->readButtons(button_states);
+        
+        // Check for Settings button press for audio trigger
+        if (button_states[6] && !prev_button_states[6]) {
+          settings_button_press_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+        } else if (!button_states[6] && prev_button_states[6]) {
+          uint32_t press_duration = (xTaskGetTickCount() * portTICK_PERIOD_MS) - settings_button_press_time;
+          if (press_duration >= 10) {
+            ESP_LOGI(TAG, "Expression mode: playing audio (duration: %dms)", press_duration);
+            triggerAudioPlayback();
+          }
+        }
+        memcpy(prev_button_states, button_states, sizeof(button_states));
+        
+        currentExpression->update(deltaTime);
+        
+        display->clear();
+        
+        // Calculate offset based on accelerometer (robot tilt)
+        // Accel X/Y show tilt direction - shift animation opposite to tilt
+        // Limit shift to ±10 pixels, scale by ~2 pixels per m/s²
+        int offsetX = (int)(-accel_data.y * 2.0f);
+        int offsetY = (int)(accel_data.x * 2.0f);
+        
+        // Clamp to reasonable range
+        if (offsetX > 10) offsetX = 10;
+        if (offsetX < -10) offsetX = -10;
+        if (offsetY > 10) offsetY = 10;
+        if (offsetY < -10) offsetY = -10;
+        
+        // Log offset every 30 frames for debugging
+        static int frame_count = 0;
+        if (++frame_count >= 30) {
+          frame_count = 0;
+          ESP_LOGI(TAG, "Offset: (%d,%d) from Accel: (%.2f,%.2f,%.2f)",
+                   offsetX, offsetY, accel_data.x, accel_data.y, accel_data.z);
+        }
+        
+        Bobot::Graphics::Vec2i offset(offsetX, offsetY);
+        currentExpression->draw(display->getU8g2Handle(), offset);
+        
+        // Display expression info at bottom
+        display->setFont(u8g2_font_5x7_tr);
+        char info[32];
+        snprintf(info, sizeof(info), "%s F:%zu/%zu", 
+                 expressionNames[currentMode].c_str(),
+                 currentExpression->getFrameIndex() + 1,
+                 currentExpression->getFrameCount());
+        display->drawString(0, 63, info);
+        
+        display->update();
+        vTaskDelay(pdMS_TO_TICKS(16));  // 60 FPS for animation
+      } else {
+        // Error loading expression
+        display->clear();
+        display->setFont(u8g2_font_6x10_tr);
+        display->drawString(2, 20, "Error loading");
+        display->drawString(2, 30, expressionNames[currentMode].c_str());
+        display->update();
+        vTaskDelay(pdMS_TO_TICKS(100));
+      }
+    }
+  }
+}
+
 extern "C" void app_main(void) {
   ESP_LOGI(TAG, "Bobot starting up...");
   
@@ -378,17 +902,63 @@ extern "C" void app_main(void) {
   }
   ESP_LOGI(TAG, "Button driver initialized");
   
+  // Start button polling task
+  if (!buttonDriver->startPolling()) {
+    ESP_LOGE(TAG, "Failed to start button polling");
+    return;
+  }
+  ESP_LOGI(TAG, "Button polling started");
+  
+  // Scan I2C bus to see what devices are present
+  ESP_LOGI(TAG, "Scanning I2C bus...");
+  bool bmi160_found = false;
+  for (uint8_t addr = 0x08; addr < 0x78; addr++) {
+    i2c_device_config_t dev_cfg = {
+      .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+      .device_address = addr,
+      .scl_speed_hz = 400000,
+      .scl_wait_us = 0,
+      .flags = {},
+    };
+    i2c_master_dev_handle_t temp_handle;
+    if (i2c_master_bus_add_device(i2c_bus, &dev_cfg, &temp_handle) == ESP_OK) {
+      // Try a quick probe (transmit 0 bytes)
+      if (i2c_master_transmit(temp_handle, nullptr, 0, 100) == ESP_OK) {
+        ESP_LOGI(TAG, "  Device at 0x%02X", addr);
+        if (addr == 0x68 || addr == 0x69) {
+          bmi160_found = true;
+        }
+      }
+      i2c_master_bus_rm_device(temp_handle);
+    }
+  }
+  
+  if (!bmi160_found) {
+    ESP_LOGW(TAG, "BMI160 not found on I2C bus - will use simulated data for testing");
+  }
+  
   // Initialize BMI160 IMU sensor on GPIO4 for INT1
+  // Try both possible I2C addresses (0x68 if SDO=GND, 0x69 if SDO=VDD)
+  ESP_LOGI(TAG, "Attempting BMI160 initialization...");
   imu = new Bobot::BMI160(i2c_bus, GPIO_NUM_4, 0x68);
   if (!imu->init()) {
-    ESP_LOGE(TAG, "Failed to initialize BMI160 IMU");
-    // Continue without IMU
+    ESP_LOGW(TAG, "BMI160 init failed at 0x68, trying 0x69...");
     delete imu;
-    imu = nullptr;
+    imu = new Bobot::BMI160(i2c_bus, GPIO_NUM_4, 0x69);
+    if (!imu->init()) {
+      ESP_LOGE(TAG, "Failed to initialize BMI160 at both 0x68 and 0x69");
+      // Continue without IMU
+      delete imu;
+      imu = nullptr;
+    } else {
+      ESP_LOGI(TAG, "BMI160 IMU initialized at 0x69");
+    }
   } else {
-    ESP_LOGI(TAG, "BMI160 IMU initialized");
-    
-    // Configure GPIO interrupt for INT1 pin
+    ESP_LOGI(TAG, "BMI160 IMU initialized at 0x68");
+  }
+  
+  // Configure GPIO interrupt for INT1 pin if IMU is available
+  if (imu != nullptr) {
     gpio_config_t io_conf = {};
     io_conf.intr_type = GPIO_INTR_POSEDGE;  // Rising edge (active high)
     io_conf.mode = GPIO_MODE_INPUT;
@@ -414,6 +984,60 @@ extern "C" void app_main(void) {
       ESP_LOGI(TAG, "Initial gyro: X=%.2f Y=%.2f Z=%.2f rad/s", 
                gyro_data.x, gyro_data.y, gyro_data.z);
     }
+  }
+  
+  // Initialize audio player on core 0
+  audioPlayer = new Bobot::AudioPlayer();
+  Bobot::AudioPlayer::Config audio_config = {
+    .i2s_bclk_pin = 26,
+    .i2s_lrc_pin = 27,
+    .i2s_dout_pin = 25,
+    .sample_rate = 22050,
+    .dma_buf_count = 8,          // 8 DMA buffers
+    .dma_buf_len = 512,          // 512 samples per buffer (2KB each, 16KB total DMA)
+    .ping_pong_buf_size = 8192   // 8KB ping-pong buffers for faster iterations
+  };
+  
+  if (audioPlayer->init(audio_config) == ESP_OK) {
+    if (audioPlayer->start() == ESP_OK) {
+      audioPlayer->setTriggerFile("/sdcard/assets/audio/meow_optimized.wav");
+      ESP_LOGI(TAG, "Audio player initialized and running on core 0");
+    } else {
+      ESP_LOGE(TAG, "Failed to start audio player task");
+    }
+  } else {
+    ESP_LOGE(TAG, "Failed to initialize audio player");
+  }
+  
+  // Initialize buzzer
+  buzzer = new Bobot::Buzzer();
+  Bobot::Buzzer::Config buzzer_config = {
+    .pin = GPIO_NUM_23,
+    .frequency = 2000,
+    .timer = LEDC_TIMER_0,
+    .channel = LEDC_CHANNEL_0,
+    .mode = LEDC_LOW_SPEED_MODE
+  };
+  
+  if (buzzer->init(buzzer_config) == ESP_OK) {
+    buzzer->setDutyCycle(50);  // Default to 50% intensity
+    ESP_LOGI(TAG, "Buzzer initialized on GPIO23");
+  } else {
+    ESP_LOGE(TAG, "Failed to initialize buzzer");
+    delete buzzer;
+    buzzer = nullptr;
+  }
+  
+  // Initialize servo driver (PCA9685)
+  servoDriver = new Bobot::ServoDriver(i2c_bus, 0x40);
+  if (servoDriver->init() == ESP_OK) {
+    // Set all servos to 90 degrees on startup
+    servoDriver->setAllAngles(90);
+    ESP_LOGI(TAG, "Servo driver initialized, all servos set to 90 degrees");
+  } else {
+    ESP_LOGE(TAG, "Failed to initialize servo driver");
+    delete servoDriver;
+    servoDriver = nullptr;
   }
   
   // Initialize SD card - Using 1-bit SDIO mode with FIXED hardware pins
@@ -464,8 +1088,17 @@ extern "C" void app_main(void) {
   // Draw initial UI
   drawUI();
   
+  // Graphics test mode - comment out to use normal UI
+  #define GRAPHICS_TEST_MODE 1
+  
+  #ifdef GRAPHICS_TEST_MODE
+  // Create graphics test task
+  xTaskCreate(graphicsTestTask, "graphics_test", 8192, NULL, 5, NULL);
+  ESP_LOGI(TAG, "Graphics test mode enabled");
+  #else
   // Create UI update task
   xTaskCreate(uiTask, "ui_task", 4096, NULL, 5, NULL);
+  #endif
   
   ESP_LOGI(TAG, "Bobot initialized successfully!");
 }

@@ -1,6 +1,29 @@
 # Bobot_2_Amethyst
 Second robot from Bobot series of robots. A huge amount of things in this robot address problems of previous Bobot.
 
+## Table of Contents
+
+- [Features](#features)
+  - [Mechanical](#mechanical)
+    - [Handle](#handle)
+    - [Back Buttons](#back-buttons)
+    - [Power Switch](#power-switch)
+    - [Screwdriver With Built In Case](#screwdriver-with-built-in-case)
+    - [Access panel](#access-panel)
+  - [Hardware](#hardware)
+    - [Shortcut Components List](#shortcut-components-list)
+    - [ESP32 Microcontroller](#esp32-microcontroller)
+    - [2.42 Inch OLED I2C Display](#242-inch-oled-i2c-display)
+    - [MAX98357A Audio Module](#max98357a-audio-module)
+    - [Li-Po 3000mAh 3.7V Battery 1S2P](#li-po-3000mah-37v-battery-1s2p)
+    - [BQ25895 Battery Management Module](#bq25895-battery-management-module)
+    - [Button Board Based On MCP23017 I/O Expander](#button-board-based-on-mcp23017-io-expander)
+    - [Touch Board Based On MPR121QR2 Touch Controller](#touch-board-based-on-mpr121qr2-touch-controller)
+  - [Software](#software)
+    - [Assets](#assets)
+    - [Developer Tools](#developer-tools)
+    - [Graphic Engine](#graphic-engine)
+
 # Features 
 
 ## Mechanical
@@ -61,7 +84,7 @@ At the right side there is panel on 2 screws which give access to main microcont
 | MCP23017 | 1 | 16-Bit I/O Expander with Serial Interface(16 parallel pins to I2C) | [datasheet](https://ww1.microchip.com/downloads/en/devicedoc/20001952c.pdf) | [store](https://www.aliexpress.com/item/1005006974304942.html) |
 | MPR121QR2  | 1 | 12 touch buttons driver with I2C interface | [datasheet](https://files.seeedstudio.com/wiki/Grove-I2C_Touch_Sensor/res/Freescale_Semiconductor;MPR121QR2.pdf) | [store](https://www.aliexpress.com/item/1005006944721047.html) |
 | TL2285OA  | 9 | Push latch button without fixation | [datasheet](https://www.alldatasheet.com/html-pdf/437236/E-SWITCH/TL2285OA/385/1/TL2285OA.html) | [store](https://www.aliexpress.com/item/1005006775951751.html) |
-| MAX98357A | 2 | Chip for audio output: DAC + amplifier in one chip | - | [store](https://www.aliexpress.com/item/1005010444800168.html) |
+| MAX98357A | 2 | Chip for audio output: DAC + amplifier in one chip | [datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/max98357a-max98357b.pdf) | [store](https://www.aliexpress.com/item/1005010444800168.html) |
 | BMI160 | 1 | Sensor gyroscope + accelerometer 6DOF | - | [store](https://www.aliexpress.com/item/1005009421405155.html) |
 
 | Component | Quantity| Store |
@@ -116,6 +139,42 @@ esp32 dedicated i2c pins. This display use SSD1309 driver.
 #### Links
 
 [General information](https://turkish.chenghaolcd.com/doc/44205281/2-42-oled-display-module-ic-i2c-spi-serial-with-ssd1309-controller.pdf)
+
+### MAX98357A Audio Module
+
+#### Description
+
+Bobot uses two MAX98357A modules for stereo audio output. Each module integrates a DAC and Class D amplifier. One module is strapped for left channel, the other for right channel. The modules communicate with ESP32 via shared I2S bus.
+
+#### Configurations
+
+Hardware:
+
+1. Left channel module: GAIN <mark>CONNECTION_TBD</mark> and <span style="text-decoration:overline">SD_MODE</span> strapped to VCC for left channel output
+2. Right channel module: GAIN <mark>CONNECTION_TBD</mark> and <span style="text-decoration:overline">SD_MODE</span> strapped to GND for right channel output
+3. Both modules share common I2S data and clock lines
+4. 1 µF decoupling capacitor between VDD and GND for each module
+
+Software:
+
+1. Configure ESP32 I2S peripheral in stereo mode
+2. Set sample rate to <mark>SAMPLE_RATE_TBD</mark> and bit depth to <mark>BIT_DEPTH_TBD</mark>
+
+#### Pinout
+
+| Pin / Signal | Connection | Net / GPIO | Description |
+|-------------|------------|------------|-------------|
+| LRC (LRCLK) | ESP32 | GPIO27 | I²S word select (left/right clock); shared between both modules. |
+| BCLK | ESP32 | GPIO26 | I²S bit clock; shared between both modules. |
+| DIN | ESP32 | GPIO25 | I²S serial data input; shared between both modules. |
+| GAIN | Configured per module | — | Gain setting pin; sets output gain. |
+| <span style="text-decoration:overline">SD_MODE</span> | Configured per module | — | Channel select: left or right. |
+| VDD | 3.3V | 3.3V | Power supply (2.5-5.5V); 1 µF decoupling to GND. |
+| GND | Ground | GND | Ground. |
+
+#### Links
+
+[Datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/max98357a-max98357b.pdf)
 
 ### Li-Po 3000mAh 3.7V Battery 1S2P
 
@@ -312,7 +371,7 @@ Software:
 
 #### Description
 
-There will be 4 main face assets libraries where each of them can be set as source library, single library with faces not
+There will be 4 main face assets libraries(profiles) where each of them can be set as source library, single library with faces not
 connected to any library and few non-main libraries which
 may be added in future for Bobot:
 
@@ -341,7 +400,7 @@ Expression
 ```
 
 Frame binary format:
-Each frame file is binary file with monochrome bitmap data optimized for u8g2 library. Format structure: first 2 bytes are frame width as little-endian uint16, next 2 bytes are frame height as little-endian uint16, remaining bytes are monochrome bitmap data where each byte represents 8 vertical pixels organized in column-major order. During runtime frames are read from SD card and passed directly to u8g2 display functions.
+Each frame file is binary file with monochrome bitmap data optimized for u8g2 library. Frame dimensions are stored in Description.ini to reduce file size and improve loading speed. Format structure: monochrome bitmap data where each byte represents 8 vertical pixels organized in column-major order. During runtime dimensions are read once from Description.ini, then frames are read from SD card and passed directly to u8g2 display functions.
 
 Expression `Description.ini`:
 ```ini
@@ -367,6 +426,11 @@ Type = IdleBlink ; default = IdleBlink
 AnimationFPS = 20 ; default = 20
 IdleTimeMinMS = 1000 ; default = 1000
 IdleTimeMaxMS = 1000 ; default = 1000
+
+[Dimensions]
+; Frame dimensions (auto-filled by export tool)
+Width = 128
+Height = 64
 ```
 
 ##### Library
@@ -394,6 +458,8 @@ For expressions containing `.aseprite` or `.ase` files script uses aseprite in b
 Aseprite is built from source during Docker container setup and available at `/usr/local/bin/aseprite`. Script automatically finds aseprite executable and falls back gracefully if not available.
 
 #### SD Card Assets Update Script
+**WARNING: Currently this feature is broken and dont work properly**
+
 ##### ESP32 Side
 ESP32 can enter asset upload mode when requested, hosting a simple HTTP server on WiFi. In main microcontroller loop it checks for button combination or serial command to activate upload mode. When activated, ESP32:
 - Stops regular operating mode
@@ -432,3 +498,44 @@ Usage:
 ```
 
 The upload is reliable (checksums verified), fast (WiFi bandwidth), and doesn't interfere with USB console/debugging.
+
+### Servo Control
+
+Bobot uses PCA9685 16-channel PWM driver (default I2C address 0x40) to control servo motors for legs. Driver supports up to 16 servos with angle control from 0 to 180 degrees. On startup all servos are initialized to 90 degrees center position.
+
+A servo control UI mode is available for testing and calibration. Mode is accessed by cycling through UI modes with UI button. In servo mode:
+- LEFT/RIGHT buttons switch between channels 0-15
+- UP/DOWN buttons adjust selected servo angle in 5-degree increments
+- Display shows current channel and angle
+
+### Graphic Engine
+
+#### Position class Vec2i
+
+Class which will hold two integer values x and y and whcih will be used for working with position values.
+This class will have implementation of basic operaions: addition, substraction, multiplicating, their with assignment analogues(e.g. plus equal) and negative sign.
+Also it will have functions which will return string that represents vector data.
+This class will be used to hold values like positions, offset, speed, etc.
+
+#### Frame class
+
+Simple class which will hold only bitmap value of frame in format which will be place-and-go for u8g2 function to draw bitmap on screen and frame size.
+Class will have function to build object from raw file data, received from storage through DMA.
+
+#### Expression class
+
+Class which will hold sequence of frames, current frame index, fps and data about correct playback way of animation.
+This class will have functions to draw current frame on given display with given offset, increment frame index, set frame index, update function which will handle correct index incrementation depended on animation loop type.
+Also there will be function to create animation object(which will do subcalls of constructing frames from files) from given directory
+
+#### Future functional
+For now this code is just to test code on development setup to understand that prom not in code, when test will be runned on manufactured pcb's. They wont be implemented right now for time saving and simplisity.
+Future functional may include, but not limited to:
+
+1) Expression Library class which will handle mapping events/states to storage directories and will handle dynamic load of expression on event/state switch(to not hold full expressions library in memory). Also this class can handle graphic profiles switch.
+
+2) Upgrading Expression class functions to work correct in energy efficient code, including handling fps using timer interrupts, to set esp32 to sleep mode for as long as possible.
+
+3) Profile class which will be placeholder for data about each library possibilities, storage path and names.
+
+4) Classes for text, side menu, burger menu, navigation system visualizations, regular bitmaps drawings, and possibly more.

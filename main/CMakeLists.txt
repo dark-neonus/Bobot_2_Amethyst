@@ -12,6 +12,10 @@ idf_component_register(
         sd_card
         bmi160
         asset_uploader
+        audio_player
+        buzzer
+        servo_driver
+        graphics
     PRIV_REQUIRES
         driver
         esp_timer
