@@ -13,14 +13,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from imgui_bundle import imgui, immapp, hello_imgui
-import moderngl
 import time
 
 from config_loader import RobotConfig
 from state_manager import AppState
 from core.kinematics import RobotKinematics
 from core.playback import PlaybackEngine
-from gui.viewport import Viewport
+from gui.viewport_gl import Viewport
 from gui.properties import PropertiesPanel
 from gui.timeline import TimelinePanel
 
@@ -157,11 +156,8 @@ class GaitEditorApp:
     def setup(self):
         """Setup called once after OpenGL context creation"""
         try:
-            # Create ModernGL context
-            ctx = moderngl.create_context()
-            
-            # Initialize viewport
-            self.viewport = Viewport(ctx)
+            # Initialize viewport (uses raw OpenGL, no ModernGL)
+            self.viewport = Viewport()
             
             print(f"Viewport initialized: {self.viewport.width}x{self.viewport.height}")
             print(f"Camera initial position: dist={self.viewport.camera.distance}, az={self.viewport.camera.azimuth}, el={self.viewport.camera.elevation}")
@@ -232,42 +228,88 @@ class GaitEditorApp:
         """Render the 3D viewport content"""
         avail = imgui.get_content_region_avail()
         
-        if avail.x > 0 and avail.y > 0 and self.viewport is not None:
-            # Resize viewport if needed
-            if abs(self.viewport.width - avail.x) > 1 or abs(self.viewport.height - avail.y) > 1:
-                self.viewport.resize(int(avail.x), int(avail.y))
+        if avail.x > 0 and avail.y > 0:
+            # Get window position for rendering
+            win_pos = imgui.get_window_pos()
+            cursor_pos = imgui.get_cursor_screen_pos()
             
-            # Calculate current robot pose
-            leg_positions = self.kinematics.calculate_all_legs(self.state.current_pose)
-            body_corners = self.kinematics.get_body_corners()
+            # Reserve space in ImGui
+            imgui.dummy(imgui.ImVec2(avail.x, avail.y))
             
-            # Render the scene
-            self.viewport.render(leg_positions, body_corners)
+            # Render text as placeholder for now
+            draw_list = imgui.get_window_draw_list()
+            draw_list.add_rect_filled(
+                imgui.ImVec2(cursor_pos.x, cursor_pos.y),
+                imgui.ImVec2(cursor_pos.x + avail.x, cursor_pos.y + avail.y),
+                imgui.color_convert_float4_to_u32(imgui.ImVec4(0.2, 0.2, 0.25, 1.0))
+            )
             
-            # Display the rendered texture
-            texture_id = self.viewport.get_texture_id()
-            
-            # Try to display the texture with flipped Y coordinate (OpenGL framebuffer convention)
-            try:
-                tex_ref = imgui.ImTextureRef(texture_id)
-                # Flip Y coordinates: UV goes from (0,1) to (1,0) instead of (0,0) to (1,1)
-                imgui.image(tex_ref, imgui.ImVec2(avail.x, avail.y), 
-                           imgui.ImVec2(0, 1), imgui.ImVec2(1, 0))
-            except Exception as e:
-                imgui.text(f"Error displaying texture: {e}")
-            
-            # Debug info
-            imgui.text(f"Viewport: {self.viewport.width}x{self.viewport.height}")
-            imgui.text(f"Texture ID: {texture_id}")
-            imgui.text(f"Camera: dist={self.viewport.camera.distance:.0f} az={self.viewport.camera.azimuth:.0f} el={self.viewport.camera.elevation:.0f}")
-            
-            # Handle camera controls
-            if imgui.is_item_hovered():
-                self.handle_viewport_input()
+            # Draw some test graphics
+            if self.viewport:
+                leg_positions = self.kinematics.calculate_all_legs(self.state.current_pose)
+                body_corners = self.kinematics.get_body_corners()
+                
+                # Draw debug info as text for now
+                text_x = cursor_pos.x + 10
+                text_y = cursor_pos.y + 10
+                draw_list.add_text(
+                    imgui.ImVec2(text_x, text_y),
+                    imgui.color_convert_float4_to_u32(imgui.ImVec4(1, 1, 1, 1)),
+                    f"3D Viewport - PyOpenGL context issue"
+                )
+                draw_list.add_text(
+                    imgui.ImVec2(text_x, text_y + 20),
+                    imgui.color_convert_float4_to_u32(imgui.ImVec4(1, 1, 0, 1)),
+                    f"Legs: {len(leg_positions)}, Body corners: {len(body_corners)}"
+                )
+                draw_list.add_text(
+                    imgui.ImVec2(text_x, text_y + 40),
+                    imgui.color_convert_float4_to_u32(imgui.ImVec4(0, 1, 1, 1)),
+                    f"Camera: dist={self.viewport.camera.distance:.0f} az={self.viewport.camera.azimuth:.0f}"
+                )
+                
+                # Draw a simple 2D representation of the robot
+                center_x = cursor_pos.x + avail.x / 2
+                center_y = cursor_pos.y + avail.y / 2
+                scale = 0.5
+                
+                # Draw body as rectangle (simplified top-down view)
+                body_w = 120 * scale
+                body_h = 120 * scale
+                draw_list.add_rect(
+                    imgui.ImVec2(center_x - body_w/2, center_y - body_h/2),
+                    imgui.ImVec2(center_x + body_w/2, center_y + body_h/2),
+                    imgui.color_convert_float4_to_u32(imgui.ImVec4(0, 1, 1, 1)),
+                    0, 0, 2.0
+                )
+                
+                # Draw legs as lines from body corners
+                for leg_id, positions in leg_positions.items():
+                    if positions and len(positions) >= 2:
+                        start = positions[0]
+                        end = positions[-1]
+                        
+                        # Project 3D to 2D (simple top-down)
+                        start_x = center_x + start[0] * scale
+                        start_y = center_y + start[2] * scale
+                        end_x = center_x + end[0] * scale
+                        end_y = center_y + end[2] * scale
+                        
+                        # Draw leg
+                        draw_list.add_line(
+                            imgui.ImVec2(start_x, start_y),
+                            imgui.ImVec2(end_x, end_y),
+                            imgui.color_convert_float4_to_u32(imgui.ImVec4(1, 1, 0, 1)),
+                            2.0
+                        )
+                        # Draw foot
+                        draw_list.add_circle_filled(
+                            imgui.ImVec2(end_x, end_y),
+                            4.0,
+                            imgui.color_convert_float4_to_u32(imgui.ImVec4(1, 0, 0, 1))
+                        )
         else:
-            imgui.text("Viewport not initialized")
-            if self.viewport is None:
-                imgui.text("ERROR: Viewport is None")
+            imgui.text("Viewport area too small")
     
     def handle_viewport_input(self):
         """Handle mouse input for viewport camera control"""

@@ -152,6 +152,11 @@ class Viewport:
         self.ctx.clear(0.2, 0.2, 0.25, 1.0)
         self.ctx.enable(moderngl.DEPTH_TEST)
         
+        # Debug: Print once to verify render is being called
+        if not hasattr(self, '_render_debug'):
+            self._render_debug = True
+            print(f"Viewport.render called: legs={len(leg_positions)}, grid_vao={self.grid_vao is not None}")
+        
         # Check OpenGL errors
         error = self.ctx.error
         if error != 'GL_NO_ERROR':
@@ -171,19 +176,45 @@ class Viewport:
         self.line_program['view'].write(view.tobytes())
         self.line_program['model'].write(model.tobytes())
         
+        # DEBUG: Draw a simple test line in screen space to verify rendering works
+        if not hasattr(self, '_test_rendered'):
+            self._test_rendered = True
+            # Draw a bright test line that should be visible
+            test_data = np.array([
+                0.0, 100.0, 0.0,  1.0, 0.0, 0.0,  # Red point at origin, 100 up
+                0.0, -100.0, 0.0,  1.0, 0.0, 0.0,  # Red point at origin, 100 down
+            ], dtype='f4')
+            test_vbo = self.ctx.buffer(test_data.tobytes())
+            test_vao = self.ctx.vertex_array(
+                self.line_program,
+                [(test_vbo, '3f 3f', 'in_position', 'in_color')]
+            )
+            test_vao.render(moderngl.LINES)
+            test_vao.release()
+            test_vbo.release()
+            print("Drew test line at origin")
+        
         # Render grid
         if self.grid_vao:
+            if not hasattr(self, '_grid_debug'):
+                self._grid_debug = True
+                print(f"Rendering grid")
             self.grid_vao.render(moderngl.LINES)
         
         # Render body box
         if body_corners:
+            if not hasattr(self, '_body_debug'):
+                self._body_debug = True
+                print(f"Rendering body with {len(body_corners)} corners")
             self._render_body(body_corners)
         
         # Render legs
         if leg_positions:
+            if not hasattr(self, '_legs_debug'):
+                self._legs_debug = True
+                print(f"Rendering {len(leg_positions)} legs")
             for leg_id, positions in leg_positions.items():
                 self._render_leg(positions, leg_id)
-            self._render_leg(positions, leg_id)
         
         # Flush to ensure all rendering is complete
         self.ctx.finish()
