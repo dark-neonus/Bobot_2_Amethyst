@@ -909,34 +909,6 @@ extern "C" void app_main(void) {
   }
   ESP_LOGI(TAG, "Button polling started");
   
-  // Scan I2C bus to see what devices are present
-  ESP_LOGI(TAG, "Scanning I2C bus...");
-  bool bmi160_found = false;
-  for (uint8_t addr = 0x08; addr < 0x78; addr++) {
-    i2c_device_config_t dev_cfg = {
-      .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-      .device_address = addr,
-      .scl_speed_hz = 400000,
-      .scl_wait_us = 0,
-      .flags = {},
-    };
-    i2c_master_dev_handle_t temp_handle;
-    if (i2c_master_bus_add_device(i2c_bus, &dev_cfg, &temp_handle) == ESP_OK) {
-      // Try a quick probe (transmit 0 bytes)
-      if (i2c_master_transmit(temp_handle, nullptr, 0, 100) == ESP_OK) {
-        ESP_LOGI(TAG, "  Device at 0x%02X", addr);
-        if (addr == 0x68 || addr == 0x69) {
-          bmi160_found = true;
-        }
-      }
-      i2c_master_bus_rm_device(temp_handle);
-    }
-  }
-  
-  if (!bmi160_found) {
-    ESP_LOGW(TAG, "BMI160 not found on I2C bus - will use simulated data for testing");
-  }
-  
   // Initialize BMI160 IMU sensor on GPIO4 for INT1
   // Try both possible I2C addresses (0x68 if SDO=GND, 0x69 if SDO=VDD)
   ESP_LOGI(TAG, "Attempting BMI160 initialization...");
