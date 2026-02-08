@@ -163,7 +163,11 @@ esp_err_t ServoDriver::setPWM(uint8_t channel, uint16_t on, uint16_t off) {
     write_buf[3] = off & 0xFF;
     write_buf[4] = (off >> 8) & 0xFF;
     
-    return i2c_master_transmit(dev_handle, write_buf, sizeof(write_buf), pdMS_TO_TICKS(100));
+    esp_err_t ret = i2c_master_transmit(dev_handle, write_buf, sizeof(write_buf), pdMS_TO_TICKS(100));
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "I2C transmit failed for ch %d: %s", channel, esp_err_to_name(ret));
+    }
+    return ret;
 }
 
 esp_err_t ServoDriver::setPulseWidth(uint8_t channel, uint16_t pulse_us) {
@@ -186,7 +190,11 @@ esp_err_t ServoDriver::setAngle(uint8_t channel, uint8_t angle) {
     uint16_t pulse_us = SERVO_MIN_PULSE_US + 
                         ((angle * (SERVO_MAX_PULSE_US - SERVO_MIN_PULSE_US)) / 180);
     
-    return setPulseWidth(channel, pulse_us);
+    esp_err_t ret = setPulseWidth(channel, pulse_us);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set ch %d to %d°: %s", channel, angle, esp_err_to_name(ret));
+    }
+    return ret;
 }
 
 esp_err_t ServoDriver::setAllAngles(uint8_t angle) {

@@ -594,7 +594,12 @@ void graphicsTestTask(void* parameter) {
             servoAngles[currentServoChannel] = 180;
           }
           if (servoDriver) {
-            servoDriver->setAngle(currentServoChannel, servoAngles[currentServoChannel]);
+            // Reverse channel mapping: UI channel N -> PCA9685 channel (15 - N)
+            uint8_t actualChannel = 15 - currentServoChannel;
+            esp_err_t ret = servoDriver->setAngle(actualChannel, servoAngles[currentServoChannel]);
+            if (ret != ESP_OK) {
+              ESP_LOGE(TAG, "Failed to set angle: %s", esp_err_to_name(ret));
+            }
           }
           ESP_LOGI(TAG, "Channel %d angle: %d", currentServoChannel, servoAngles[currentServoChannel]);
         }
@@ -605,7 +610,12 @@ void graphicsTestTask(void* parameter) {
         if (servoAngles[currentServoChannel] >= 10) {
           servoAngles[currentServoChannel] -= 10;
           if (servoDriver) {
-            servoDriver->setAngle(currentServoChannel, servoAngles[currentServoChannel]);
+            // Reverse channel mapping: UI channel N -> PCA9685 channel (15 - N)
+            uint8_t actualChannel = 15 - currentServoChannel;
+            esp_err_t ret = servoDriver->setAngle(actualChannel, servoAngles[currentServoChannel]);
+            if (ret != ESP_OK) {
+              ESP_LOGE(TAG, "Failed to set angle: %s", esp_err_to_name(ret));
+            }
           }
           ESP_LOGI(TAG, "Channel %d angle: %d", currentServoChannel, servoAngles[currentServoChannel]);
         }
