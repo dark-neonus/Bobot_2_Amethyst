@@ -8,7 +8,7 @@ idf_component_register(
         esp_system
         u8g2-hal-esp-idf
         display
-        button_driver
+        web_server
         sd_card
         bmi160
         asset_uploader

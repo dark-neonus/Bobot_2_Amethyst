@@ -8,7 +8,8 @@
 #include <u8g2.h>
 
 #include "display.hpp"
-#include "button_driver.hpp"
+// #include "button_driver.hpp"  // Replaced with web_server
+#include "web_server.hpp"
 #include "sd_card.hpp"
 #include "bmi160.hpp"
 #include "asset_uploader.hpp"
@@ -33,7 +34,8 @@ static const char* TAG = "Bobot";
 
 // Global instances
 static Bobot::Display* display = nullptr;
-static Bobot::ButtonDriver* buttonDriver = nullptr;
+// static Bobot::ButtonDriver* buttonDriver = nullptr;  // Replaced with web_server
+static Bobot::WebServer* webServer = nullptr;
 static Bobot::SDCard* sdCard = nullptr;
 static Bobot::BMI160* imu = nullptr;
 static Bobot::AssetUploader* assetUploader = nullptr;
@@ -229,7 +231,8 @@ void uiTask(void* parameter) {
         
         // Check for Back button to manually exit
         bool exit_button_states[9] = {false};
-        if (buttonDriver->readButtons(exit_button_states) && exit_button_states[0]) {
+        webServer->readButtons(exit_button_states);
+        if (exit_button_states[0]) {
           ESP_LOGI(TAG, "Manual exit via Back button");
           upload_mode_active = false;
           break;
@@ -258,7 +261,8 @@ void uiTask(void* parameter) {
           bool confirm_button_states[9] = {false};
           while (true) {
             vTaskDelay(pdMS_TO_TICKS(100));
-            if (buttonDriver->readButtons(confirm_button_states) && confirm_button_states[0]) {
+            webServer->readButtons(confirm_button_states);
+            if (confirm_button_states[0]) {
               break;
             }
           }
@@ -315,48 +319,47 @@ void uiTask(void* parameter) {
       }
     }
     
-    // Read button states and detect settings button press for audio
-    bool readSuccess = buttonDriver->readButtons(button_states);
+    // Read button states from web server and detect settings button press for audio
+    webServer->readButtons(button_states);
     
     // Always log button 6 state for debugging
     static int debug_counter = 0;
     if (++debug_counter % 100 == 0) {  // Log every 100 cycles
-      ESP_LOGI(TAG, "Button[6]=%d, readSuccess=%d", button_states[6], readSuccess);
+      ESP_LOGI(TAG, "Button[6]=%d", button_states[6]);
     }
     
-    if (readSuccess) {
-      needs_redraw = true;
-      
-      // Log button state changes for debugging
-      if (button_states[6] != prev_button_states[6]) {
-        ESP_LOGI(TAG, "Settings button state changed: prev=%d, now=%d", prev_button_states[6], button_states[6]);
-      }
-      
-      // Detect settings button (index 6) press and hold for audio trigger
-      if (button_states[6] && !prev_button_states[6]) {
-        // Settings button just pressed
-        settings_button_press_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
-        ESP_LOGI(TAG, "Settings button pressed at %dms", settings_button_press_time);
-      } else if (!button_states[6] && prev_button_states[6]) {
-        // Settings button just released - check if held for at least 10ms
-        uint32_t press_duration = (xTaskGetTickCount() * portTICK_PERIOD_MS) - settings_button_press_time;
-        ESP_LOGI(TAG, "Settings button released, duration: %dms", press_duration);
-        if (press_duration >= 10) {
-          // Trigger audio playback (minimum 10ms to avoid accidental triggers)
-          if (audioPlayer) {
-            ESP_LOGI(TAG, "Settings button pressed for %dms - playing meow", press_duration);
-            audioPlayer->triggerPlayback();
-          } else {
-            ESP_LOGE(TAG, "audioPlayer is NULL!");
-          }
-        } else {
-          ESP_LOGW(TAG, "Press duration too short: %dms (need >= 10ms)", press_duration);
-        }
-      }
-      
-      // Save previous button states
-      memcpy(prev_button_states, button_states, sizeof(button_states));
+    // Update UI based on button states
+    needs_redraw = true;
+    
+    // Log button state changes for debugging
+    if (button_states[6] != prev_button_states[6]) {
+      ESP_LOGI(TAG, "Settings button state changed: prev=%d, now=%d", prev_button_states[6], button_states[6]);
     }
+    
+    // Detect settings button (index 6) press and hold for audio trigger
+    if (button_states[6] && !prev_button_states[6]) {
+      // Settings button just pressed
+      settings_button_press_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+      ESP_LOGI(TAG, "Settings button pressed at %dms", settings_button_press_time);
+    } else if (!button_states[6] && prev_button_states[6]) {
+      // Settings button just released - check if held for at least 10ms
+      uint32_t press_duration = (xTaskGetTickCount() * portTICK_PERIOD_MS) - settings_button_press_time;
+      ESP_LOGI(TAG, "Settings button released, duration: %dms", press_duration);
+      if (press_duration >= 10) {
+        // Trigger audio playback (minimum 10ms to avoid accidental triggers)
+        if (audioPlayer) {
+          ESP_LOGI(TAG, "Settings button pressed for %dms - playing meow", press_duration);
+          audioPlayer->triggerPlayback();
+        } else {
+          ESP_LOGE(TAG, "audioPlayer is NULL!");
+        }
+      } else {
+        ESP_LOGW(TAG, "Press duration too short: %dms (need >= 10ms)", press_duration);
+      }
+    }
+    
+    // Save previous button states
+    memcpy(prev_button_states, button_states, sizeof(button_states));
     
     // Update file count every 5 seconds
     uint32_t current_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
@@ -412,8 +415,8 @@ void uiTask(void* parameter) {
 void graphicsTestTask(void* parameter) {
   ESP_LOGI(TAG, "UI mode switcher task started");
   
-  if (!display || !sdCard || !buttonDriver) {
-    ESP_LOGE(TAG, "Display, SD card, or button driver not available");
+  if (!display || !sdCard || !webServer) {
+    ESP_LOGE(TAG, "Display, SD card, or web server not available");
     vTaskDelete(NULL);
     return;
   }
@@ -506,8 +509,8 @@ void graphicsTestTask(void* parameter) {
     }
     // If IMU not available, accel_data stays at zeros (initialized at startup)
     
-    // Check UI button state
-    bool uiButtonPressed = buttonDriver->isButtonPressed(Bobot::Button::UI);
+    // Check UI button state (button index 2)
+    bool uiButtonPressed = webServer->isButtonPressed(2);  // UI button
     
     // Detect UI button hold for instant mode switch
     if (uiButtonPressed && !uiButtonWasPressed) {
@@ -564,7 +567,7 @@ void graphicsTestTask(void* parameter) {
     // Render current mode
     if (currentMode == -3) {
       // Servo control mode
-      buttonDriver->readButtons(button_states);
+      webServer->readButtons(button_states);
       
       // LEFT button - previous channel
       if (button_states[3] && !prev_button_states[3]) {
@@ -690,7 +693,7 @@ void graphicsTestTask(void* parameter) {
         }
       }
       
-      buttonDriver->readButtons(button_states);
+      webServer->readButtons(button_states);
       
       // Log button state changes
       bool any_button_changed = false;
@@ -775,7 +778,7 @@ void graphicsTestTask(void* parameter) {
     } else if (currentMode == -1) {
       // Show old UI
       // Read button states for UI
-      buttonDriver->readButtons(button_states);
+      webServer->readButtons(button_states);
       
       // Check for Settings button press for audio trigger
       if (button_states[6] != prev_button_states[6]) {
@@ -808,7 +811,7 @@ void graphicsTestTask(void* parameter) {
       // Show expression animation
       if (expressionLoaded && currentExpression) {
         // Read buttons for audio trigger
-        buttonDriver->readButtons(button_states);
+        webServer->readButtons(button_states);
         
         // Check for Settings button press for audio trigger
         if (button_states[6] && !prev_button_states[6]) {
@@ -904,20 +907,22 @@ extern "C" void app_main(void) {
   }
   ESP_LOGI(TAG, "Display initialized");
   
-  // Initialize button driver
-  buttonDriver = new Bobot::ButtonDriver(i2c_bus, 0x20);
-  if (!buttonDriver->init()) {
-    ESP_LOGE(TAG, "Failed to initialize button driver");
+  // Initialize web server for robot control (runs on Core 1)
+  webServer = new Bobot::WebServer();
+  Bobot::WebServer::Config web_config = {
+    .ssid = "Bobot_Control",
+    .password = "",  // Open network
+    .port = 80,
+    .max_connections = 4,
+    .core_id = 1  // Run on Core 1 (separate from SD card operations)
+  };
+  if (webServer->init(web_config) != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize web server");
     return;
   }
-  ESP_LOGI(TAG, "Button driver initialized");
-  
-  // Start button polling task
-  if (!buttonDriver->startPolling()) {
-    ESP_LOGE(TAG, "Failed to start button polling");
-    return;
-  }
-  ESP_LOGI(TAG, "Button polling started");
+  ESP_LOGI(TAG, "Web Server initialized on Core 1");
+  ESP_LOGI(TAG, "Connect to Wi-Fi: %s and open http://%s", 
+           web_config.ssid, webServer->getIPAddress());
   
   // Initialize BMI160 IMU sensor on GPIO4 for INT1
   // Try both possible I2C addresses (0x68 if SDO=GND, 0x69 if SDO=VDD)
