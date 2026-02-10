@@ -16,6 +16,7 @@
 #include "audio_player.hpp"
 #include "buzzer.hpp"
 #include "servo_driver.hpp"
+#include "kinematic.hpp"
 #include "sdkconfig.h"
 
 // Graphics engine
@@ -42,6 +43,7 @@ static Bobot::AssetUploader* assetUploader = nullptr;
 static Bobot::AudioPlayer* audioPlayer = nullptr;
 static Bobot::Buzzer* buzzer = nullptr;
 static Bobot::ServoDriver* servoDriver = nullptr;
+static Bobot::Kinematic* kinematic = nullptr;
 static i2c_master_bus_handle_t i2c_bus = nullptr;
 
 // Upload mode flag
@@ -189,6 +191,45 @@ void drawUI() {
   }
   
   display->update();
+}
+
+/**
+ * @brief Servo update task - handles smooth movement and kinematic sequences
+ */
+void servoUpdateTask(void* parameter) {
+  ESP_LOGI(TAG, "Servo update task started");
+  
+  uint32_t last_update_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+  uint32_t update_count = 0;
+  
+  while (true) {
+    uint32_t current_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
+    uint32_t delta_ms = current_time - last_update_time;
+    last_update_time = current_time;
+    
+    // Update smooth servo movements
+    if (servoDriver) {
+      servoDriver->updateSmoothMovements(delta_ms);
+      
+      // Log every 50 updates (once per second at 50Hz)
+      update_count++;
+      if (update_count >= 50) {
+        bool any_moving = servoDriver->isMoving();
+        if (any_moving) {
+          ESP_LOGI(TAG, "Servo update: servos are moving");
+        }
+        update_count = 0;
+      }
+    }
+    
+    // Update kinematic sequences
+    if (kinematic) {
+      kinematic->update(delta_ms);
+    }
+    
+    // Run at 50Hz (20ms)
+    vTaskDelay(pdMS_TO_TICKS(20));
+  }
 }
 
 /**
@@ -1018,13 +1059,27 @@ extern "C" void app_main(void) {
   // Initialize servo driver (PCA9685)
   servoDriver = new Bobot::ServoDriver(i2c_bus, 0x40);
   if (servoDriver->init() == ESP_OK) {
-    // Set all servos to 90 degrees on startup
-    servoDriver->setAllAngles(90);
-    ESP_LOGI(TAG, "Servo driver initialized, all servos set to 90 degrees");
+    // Set all servos to 90 degrees on startup using smooth movement at lowest speed
+    for (int i = 0; i < 16; i++) {
+      servoDriver->setAngleSmooth(i, 90, 60.0f);  // 60 deg/s - lowest speed
+    }
+    ESP_LOGI(TAG, "Servo driver initialized, all servos moving to 90 degrees at 60 deg/s");
   } else {
     ESP_LOGE(TAG, "Failed to initialize servo driver");
     delete servoDriver;
     servoDriver = nullptr;
+  }
+  
+  // Initialize kinematic controller
+  if (servoDriver) {
+    kinematic = new Bobot::Kinematic(servoDriver);
+    ESP_LOGI(TAG, "Kinematic controller initialized");
+    
+    // Set servo driver and kinematic on web server
+    webServer->setServoDriver(servoDriver);
+    webServer->setKinematic(kinematic);
+  } else {
+    ESP_LOGE(TAG, "Cannot initialize kinematic without servo driver");
   }
   
   // Initialize SD card - Using 1-bit SDIO mode with FIXED hardware pins
@@ -1074,6 +1129,10 @@ extern "C" void app_main(void) {
   
   // Draw initial UI
   drawUI();
+  
+  // Create servo update task (runs on Core 0)
+  xTaskCreate(servoUpdateTask, "servo_update", 4096, NULL, 6, NULL);
+  ESP_LOGI(TAG, "Servo update task started");
   
   // Graphics test mode - comment out to use normal UI
   #define GRAPHICS_TEST_MODE 1

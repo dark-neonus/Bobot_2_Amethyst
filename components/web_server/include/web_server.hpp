@@ -7,6 +7,12 @@
 #include <freertos/task.h>
 #include <cstdint>
 
+// Forward declarations
+namespace Bobot {
+    class ServoDriver;
+    class Kinematic;
+}
+
 namespace Bobot {
 
 /**
@@ -86,10 +92,29 @@ public:
      */
     const char* getIPAddress() const { return "192.168.4.1"; }
 
+    /**
+     * @brief Set servo driver for servo control
+     * 
+     * @param driver Pointer to servo driver
+     */
+    void setServoDriver(ServoDriver* driver);
+
+    /**
+     * @brief Set kinematic controller for movement sequences
+     * 
+     * @param kin Pointer to kinematic controller
+     */
+    void setKinematic(Kinematic* kin);
+
 private:
     httpd_handle_t server;
     Config config;
     TaskHandle_t server_task;
+    
+    // Servo and kinematic control
+    static ServoDriver* servo_driver;
+    static Kinematic* kinematic;
+    static float servo_speed;  // degrees per second
     
     // Button states (shared between web handlers and main code)
     static volatile bool button_states[9];
@@ -114,6 +139,26 @@ private:
      * @brief HTTP handler for button press API (/api/button)
      */
     static esp_err_t buttonHandler(httpd_req_t* req);
+
+    /**
+     * @brief HTTP handler for servo angle setting (/api/servo)
+     */
+    static esp_err_t servoHandler(httpd_req_t* req);
+
+    /**
+     * @brief HTTP handler for servo state query (/api/servo/state)
+     */
+    static esp_err_t servoStateHandler(httpd_req_t* req);
+
+    /**
+     * @brief HTTP handler for speed setting (/api/speed)
+     */
+    static esp_err_t speedHandler(httpd_req_t* req);
+
+    /**
+     * @brief HTTP handler for kinematic commands (/api/kinematic)
+     */
+    static esp_err_t kinematicHandler(httpd_req_t* req);
 
     /**
      * @brief HTTP handler for button state query (/api/state)

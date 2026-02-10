@@ -40,6 +40,14 @@ namespace Bobot {
 ServoDriver::ServoDriver(i2c_master_bus_handle_t bus_handle, uint8_t i2c_address)
     : dev_handle(nullptr), address(i2c_address) {
     
+    // Initialize servo states
+    for (int i = 0; i < 16; i++) {
+        servo_states[i].current_angle = 90.0f;
+        servo_states[i].target_angle = 90.0f;
+        servo_states[i].speed = 300.0f;  // Default speed
+        servo_states[i].moving = false;
+    }
+    
     // Create I2C device
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
@@ -186,6 +194,13 @@ esp_err_t ServoDriver::setAngle(uint8_t channel, uint8_t angle) {
         angle = 180;
     }
     
+    // Update state tracking - this will stop any smooth movement in progress
+    if (channel < 16) {
+        servo_states[channel].current_angle = angle;
+        servo_states[channel].target_angle = angle;
+        servo_states[channel].moving = false;
+    }
+    
     // Map angle (0-180) to pulse width (500-2500us)
     uint16_t pulse_us = SERVO_MIN_PULSE_US + 
                         ((angle * (SERVO_MAX_PULSE_US - SERVO_MIN_PULSE_US)) / 180);
@@ -207,6 +222,91 @@ esp_err_t ServoDriver::setAllAngles(uint8_t angle) {
         }
     }
     return ret;
+}
+
+esp_err_t ServoDriver::setAngleSmooth(uint8_t channel, uint8_t target_angle, float speed_deg_per_sec) {
+    if (channel > 15) {
+        ESP_LOGE(TAG, "Invalid channel: %d (must be 0-15)", channel);
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    if (target_angle > 180) {
+        ESP_LOGW(TAG, "Target angle %d exceeds 180, clamping", target_angle);
+        target_angle = 180;
+    }
+    
+    if (speed_deg_per_sec < 60.0f) {
+        speed_deg_per_sec = 60.0f;
+    } else if (speed_deg_per_sec > 600.0f) {
+        speed_deg_per_sec = 600.0f;
+    }
+    
+    servo_states[channel].target_angle = target_angle;
+    servo_states[channel].speed = speed_deg_per_sec;
+    servo_states[channel].moving = true;
+    
+    return ESP_OK;
+}
+
+void ServoDriver::updateSmoothMovements(uint32_t delta_ms) {
+    float delta_sec = delta_ms / 1000.0f;
+    
+    for (int i = 0; i < 16; i++) {
+        if (!servo_states[i].moving) {
+            continue;
+        }
+        
+        float current = servo_states[i].current_angle;
+        float target = servo_states[i].target_angle;
+        float speed = servo_states[i].speed;
+        
+        // Calculate distance to move this frame
+        float max_move = speed * delta_sec;
+        float diff = target - current;
+        
+        if (fabs(diff) <= max_move) {
+            // Reached target
+            servo_states[i].current_angle = target;
+            servo_states[i].moving = false;
+            
+            // Set final position - use setPulseWidth to avoid recursion
+            uint8_t final_angle = (uint8_t)(target + 0.5f);
+            if (final_angle > 180) final_angle = 180;
+            uint16_t pulse_us = SERVO_MIN_PULSE_US + 
+                              ((final_angle * (SERVO_MAX_PULSE_US - SERVO_MIN_PULSE_US)) / 180);
+            setPulseWidth(i, pulse_us);
+        } else {
+            // Move towards target
+            if (diff > 0) {
+                servo_states[i].current_angle += max_move;
+            } else {
+                servo_states[i].current_angle -= max_move;
+            }
+            
+            // Update position - use setPulseWidth directly to avoid resetting moving flag
+            uint8_t current_angle = (uint8_t)(servo_states[i].current_angle + 0.5f);
+            if (current_angle > 180) current_angle = 180;
+            uint16_t pulse_us = SERVO_MIN_PULSE_US + 
+                              ((current_angle * (SERVO_MAX_PULSE_US - SERVO_MIN_PULSE_US)) / 180);
+            setPulseWidth(i, pulse_us);
+        }
+    }
+}
+
+uint8_t ServoDriver::getCurrentAngle(uint8_t channel) const {
+    if (channel > 15) {
+        return 90;
+    }
+    return (uint8_t)(servo_states[channel].current_angle + 0.5f);
+}
+
+bool ServoDriver::isMoving() const {
+    for (int i = 0; i < 16; i++) {
+        if (servo_states[i].moving) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace Bobot

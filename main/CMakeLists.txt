@@ -15,6 +15,7 @@ idf_component_register(
         audio_player
         buzzer
         servo_driver
+        kinematic
         graphics
     PRIV_REQUIRES
         driver
